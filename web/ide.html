@@ -9,7 +9,7 @@
 </head><body>
 <div id="dos"></div><canvas id="mirror" width="320" height="200"></canvas>
 <script>
-Dos(document.getElementById("dos"), { url: "idedemo.jsdos?v=1788022177", autoStart: true, kiosk: true,
+Dos(document.getElementById("dos"), { url: "ide-v2.jsdos", autoStart: true, kiosk: true,
   onEvent: (e, ci) => { if (ci) window.__ci = ci; } });
 // js-dos draws through WebGL without preserveDrawingBuffer, so the canvas
 // reads back blank. Mirror each frame onto a 2D canvas to make it capturable.

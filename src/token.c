@@ -100,16 +100,31 @@ int tok_tokenize(const char *src, unsigned char *out, int outmax, int greedy)
          * alphabetic keyword not be welded to an identifier on either side,
          * so TOTAL survives -- at the cost of needing FOR I, not FORI.
          * Symbolic keywords (+, =, <) are never subject to that test. */
-        for (i = 0; i < NKEYWORDS; i++) {
-            int used = match_keyword(src, keywords[i]);
-            if (used) {
-                unsigned char t = (unsigned char)(TOK_FIRST + i);
+        /* Take the longest keyword that matches here, not the first one in
+         * the table. AT comes before ATN, so first-match tokenizes ATN(1) as
+         * AT followed by the variable N -- which is a syntax error, and which
+         * LIST would show back as "AT N(1)". Longest-match does not soften
+         * the greedy bug: TOTAL still becomes TO + TAL, because TOTAL is not
+         * itself a keyword. */
+        {
+            int best = -1, best_used = 0;
+            for (i = 0; i < NKEYWORDS; i++) {
+                int used = match_keyword(src, keywords[i]);
+                if (!used)
+                    continue;
                 if (!greedy && isalpha((unsigned char)keywords[i][0]) &&
                     (prev_ident || is_ident_char((unsigned char)src[used])))
                     continue;
+                if (used > best_used) {
+                    best_used = used;
+                    best = i;
+                }
+            }
+            if (best >= 0) {
+                unsigned char t = (unsigned char)(TOK_FIRST + best);
                 {
                     EMIT(t);
-                    src += used;
+                    src += best_used;
                     matched = 1;
                     prev_ident = 0;
 
@@ -134,7 +149,6 @@ int tok_tokenize(const char *src, unsigned char *out, int outmax, int greedy)
                             }
                         }
                     }
-                    break;
                 }
             }
         }

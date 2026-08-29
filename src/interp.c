@@ -1730,6 +1730,23 @@ void it_line(const char *src)
         int code = setjmp(err_jmp);
         if (code == 0) {
             exec_line();
+
+            /* A jump taken inside an immediate line lands back in the same
+             * buffer -- NEXT rewinding to just after its FOR -- and there is
+             * no program line for the loop below to advance to, so it has to
+             * be followed here. Without this, a loop typed at the prompt runs
+             * exactly once, which is not what the machine did. */
+            while (jumped && !running && !quitting && cur_line == 0) {
+                jumped = 0;
+                if (host_break()) {
+                    scr_newline();
+                    scr_puts("BREAK");
+                    scr_newline();
+                    break;
+                }
+                exec_line();
+            }
+
             while (running && !quitting) {
                 if (jumped) {
                     jumped = 0;

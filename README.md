@@ -124,6 +124,26 @@ separately through `panes.c` and `tools/layout.c`.
 
 Shape-table `DRAW`/`XDRAW`, sound, and `PR#`/`IN#` are parsed and ignored.
 
+## Where it differs from the reference
+
+Two places, both measured rather than assumed:
+
+- `FRE(0)` reads one byte higher than the reference: 35492 against 35491, one
+  byte of collector residue.
+- `ATN` differs by one in the ninth significant digit on some arguments --
+  `ATN(1)` gives .785398163 against the reference's .785398164. Every other
+  function matches exactly. The reference is not using the host's `atan`, nor
+  the Applesoft ROM's polynomial: neither reproduces its values, and the
+  differences run in both directions, which is the signature of some third
+  approximation. Twelve sampled arguments were not enough to identify it, so
+  this is left as a known difference rather than guessed at.
+
+The tokenizer bug behind `ATN` was real and is fixed: `AT` is a prefix of
+`ATN` and the table listed `AT` first, so `ATN(1)` came apart into `AT`
+followed by the variable `N`. Keyword matching now takes the longest match
+rather than the first. That does not soften the deliberate greedy bug, because
+`TOTAL` is not itself a keyword and still becomes `TO` + `TAL`.
+
 ## Graphics
 
 `GR` and `HGR` write into the Apple's page memory, laid out the way the

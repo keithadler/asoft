@@ -133,6 +133,38 @@ int main(void)
         }
     }
 
+    /* AT is a prefix of ATN, and the table lists AT first. Matching the first
+     * keyword rather than the longest turned ATN(1) into AT followed by the
+     * variable N: a syntax error, which LIST showed back as "AT N(1)". The
+     * greedy bug must survive the fix, though -- TOTAL is not a keyword, so it
+     * still comes apart into TO and TAL. */
+    {
+        unsigned char t[64];
+        char back[128];
+
+        tok_tokenize("PRINT ATN(1)", t, (int)sizeof(t), 1);
+        if (!memchr(t, T_ATN, sizeof(t))) {
+            printf("  FAIL  ATN did not tokenize to T_ATN\n");
+            failures++;
+        }
+        if (memchr(t, T_AT, sizeof(t))) {
+            printf("  FAIL  ATN tokenized as AT + N\n");
+            failures++;
+        }
+        tok_detokenize(t, back, (int)sizeof(back));
+        if (!strstr(back, "ATN")) {
+            printf("  FAIL  ATN listed back as \"%s\"\n", back);
+            failures++;
+        }
+
+        tok_tokenize("10 TOTAL = 5", t, (int)sizeof(t), 1);
+        tok_detokenize(t, back, (int)sizeof(back));
+        if (!strstr(back, "TO TAL")) {
+            printf("  FAIL  the greedy bug stopped working: \"%s\"\n", back);
+            failures++;
+        }
+    }
+
     printf("test_token: %s\n", failures ? "FAILED" : "ok");
     return failures ? 1 : 0;
 }
