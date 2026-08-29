@@ -3,74 +3,55 @@
 <head>
 <meta charset="utf-8">
 <title>Applesoft BASIC for DOS</title>
-<link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
-<script src="https://v8.js-dos.com/latest/js-dos.js"></script>
 <style>
-  html, body { height: 100%; margin: 0; background: #111; color: #b9b9b9;
-               font: 13px/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
-  body { display: flex; }
-  #dos { flex: 1 1 auto; min-width: 0; }
-  aside { flex: 0 0 260px; padding: 18px 20px; background: #191919;
-          border-left: 1px solid #2a2a2a; overflow: auto; }
-  h1 { font-size: 13px; color: #eee; margin: 0 0 2px; letter-spacing: .02em; }
-  p.sub { color: #777; margin: 0 0 16px; }
-  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
-       color: #777; margin: 18px 0 6px; font-weight: 600; }
+  :root { color-scheme: dark; }
+  html, body { height: 100%; margin: 0; background: #101010; color: #b9b9b9;
+               font: 14px/1.6 ui-monospace, "SF Mono", Menlo, monospace; }
+  body { display: flex; align-items: center; justify-content: center; padding: 24px; }
+  main { max-width: 760px; width: 100%; }
+  h1 { font-size: 20px; color: #eee; margin: 0 0 4px; letter-spacing: .01em; }
+  p.sub { color: #777; margin: 0 0 28px; }
+  .row { display: flex; gap: 18px; flex-wrap: wrap; }
+  a.card { flex: 1 1 320px; display: block; text-decoration: none; color: inherit;
+           background: #181818; border: 1px solid #2b2b2b; border-radius: 6px;
+           padding: 20px 22px; transition: border-color .15s, background .15s; }
+  a.card:hover { border-color: #7ddc7d; background: #1d1d1d; }
+  a.card h2 { font-size: 15px; color: #7ddc7d; margin: 0 0 8px; }
+  a.card p { margin: 0; color: #8d8d8d; font-size: 13px; }
+  pre { background: #181818; border: 1px solid #2b2b2b; border-radius: 6px;
+        padding: 14px 16px; overflow-x: auto; color: #9d9d9d; font-size: 13px;
+        margin: 28px 0 0; }
+  .note { color: #666; font-size: 12px; margin-top: 22px; }
   code { color: #7ddc7d; }
-  ul { margin: 0; padding-left: 16px; }
-  li { margin-bottom: 5px; }
-  .note { color: #666; margin-top: 18px; font-size: 12px; }
-  @media (max-width: 720px) { body { flex-direction: column; } aside { flex: none; border: 0; } }
 </style>
 </head>
 <body>
-<div id="dos"></div>
-<aside>
+<main>
   <h1>Applesoft BASIC for DOS</h1>
-  <p class="sub">The ROM's bugs, on purpose.</p>
+  <p class="sub">The ROM's bugs, on purpose. A 16-bit DOS binary, running here under DOSBox.</p>
 
-  <h2>Try this</h2>
-  <ul>
-    <li><code>LOAD TESTS.BAS</code></li>
-    <li><code>LIST</code></li>
-    <li><code>RUN</code></li>
-  </ul>
+  <div class="row">
+    <a class="card" href="console.html">
+      <h2>Console &rarr;</h2>
+      <p>Just the <code>]</code> prompt, the way the reference build starts.
+         Prints no banner, because the binary it is checked against prints none.</p>
+    </a>
+    <a class="card" href="idedemo.html">
+      <h2>IDE &rarr;</h2>
+      <p>The windowed front end: menu bar, program listing, and a Machine pane
+         showing zero page, the control stack and which bugs are switched on.</p>
+    </a>
+  </div>
 
-  <h2>Graphics</h2>
-  <ul>
-    <li><code>LOAD HGRDEMO.BAS</code><br>then <code>RUN</code> &mdash; colour bars,
-        and a white border that comes out violet</li>
-    <li><code>LOAD HGRSHAP.BAS</code><br>shape tables: scale, rotation,
-        <code>XDRAW</code>, collisions</li>
-  </ul>
-  <p class="note">Hi-res hides the text, as the Apple did. Type
-     <code>TEXT</code> blind and press return to come back.</p>
+  <pre>]LOAD TESTS.BAS        the compatibility suite
+]LOAD HGRDEMO.BAS      hi-res colour, where white comes out violet
+]LOAD HGRSHAP.BAS      shape tables: DRAW, XDRAW, ROT, SCALE
+]RUN</pre>
 
-  <h2>The bugs</h2>
-  <ul>
-    <li><code>PRINT .1+.2</code> &rarr; <code>.3</code><br>nine significant digits</li>
-    <li><code>HTAB 10: PRINT POS(0)</code> &rarr; <code>11</code><br>off by two</li>
-    <li><code>10 TOTAL=5</code> then <code>LIST</code><br>lists as <code>TO TAL = 5</code></li>
-    <li><code>LOAD ONERRFIX.BAS</code><br>the ONERR leak, and the
-        <code>CALL -3288</code> that pops it</li>
-  </ul>
-
-  <h2>The IDE</h2>
-  <p style="margin:0 0 16px"><a href="idedemo.html" style="color:#7ddc7d">Open the
-     windowed front end</a> &mdash; menu bar, Machine pane, program listing.
-     The same 16-bit binary, in 80&times;43 text mode.</p>
-
-  <p class="note">Click the screen first so it takes the keyboard.
-     Typing is uppercase, as the Apple was.</p>
-</aside>
-<script>
-  Dos(document.getElementById("dos"), {
-    url: "asoft.jsdos",
-    // 80x25 text; let the canvas fill the frame rather than letterboxing hard
-    renderAspect: "4/3",
-    autoStart: true,
-    kiosk: true
-  });
-</script>
+  <p class="note">Click the screen before typing, so it takes the keyboard.
+     Lower case is fine: keywords and variable names fold to upper case, while
+     what is inside quotes keeps the case you typed.
+     In the IDE: F5 run, F9 list, F10 menus, Ctrl-Q quit.</p>
+</main>
 </body>
 </html>

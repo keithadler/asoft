@@ -1,9 +1,9 @@
   File   Run   Bugs   Debug   Help                                              
 +=============== Apple ][ ===============+:+============= Machine =============+
-|]                                       |:|-----------------------------------|
-|                                        |:|TXTTAB   $0801                     |
+|APPLESOFT BASIC FOR DOS                 |:|-----------------------------------|
+|THE ROM'S BUGS, ON PURPOSE              |:|TXTTAB   $0801                     |
 |                                        |:|VARTAB   $0AEF                     |
-|                                        |:|ARYTAB   $0AEF                     |
+|]                                       |:|ARYTAB   $0AEF                     |
 |                                        |:|STREND   $0AEF                     |
 |                                        |:|FRETOP   $9600                     |
 |                                        |:|HIMEM    $9600                     |

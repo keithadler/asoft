@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Applesoft BASIC for DOS</title>
+<link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
+<script src="https://v8.js-dos.com/latest/js-dos.js"></script>
+<style>
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #111; color: #b9b9b9;
+               font: 13px/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+  body { display: flex; }
+  #dos { flex: 1 1 auto; min-width: 0; height: 100vh; }
+  aside { flex: 0 0 260px; padding: 18px 20px; background: #191919;
+          border-left: 1px solid #2a2a2a; overflow: auto; }
+  h1 { font-size: 13px; color: #eee; margin: 0 0 2px; letter-spacing: .02em; }
+  p.sub { color: #777; margin: 0 0 16px; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+       color: #777; margin: 18px 0 6px; font-weight: 600; }
+  code { color: #7ddc7d; }
+  ul { margin: 0; padding-left: 16px; }
+  li { margin-bottom: 5px; }
+  .note { color: #666; margin-top: 18px; font-size: 12px; }
+  @media (max-width: 720px) { body { flex-direction: column; } aside { flex: none; border: 0; } }
+</style>
+</head>
+<body>
+<div id="dos"></div>
+<aside>
+  <h1>Applesoft BASIC for DOS</h1>
+  <p class="sub">Console build &mdash; <a href="./" style="color:#7ddc7d">back</a></p>
+
+  <h2>Try this</h2>
+  <ul>
+    <li><code>LOAD TESTS.BAS</code></li>
+    <li><code>LIST</code></li>
+    <li><code>RUN</code></li>
+  </ul>
+
+  <h2>Graphics</h2>
+  <ul>
+    <li><code>LOAD HGRDEMO.BAS</code><br>then <code>RUN</code> &mdash; colour bars,
+        and a white border that comes out violet</li>
+    <li><code>LOAD HGRSHAP.BAS</code><br>shape tables: scale, rotation,
+        <code>XDRAW</code>, collisions</li>
+  </ul>
+  <p class="note">Hi-res hides the text, as the Apple did. Type
+     <code>TEXT</code> blind and press return to come back.</p>
+
+  <h2>The bugs</h2>
+  <ul>
+    <li><code>PRINT .1+.2</code> &rarr; <code>.3</code><br>nine significant digits</li>
+    <li><code>HTAB 10: PRINT POS(0)</code> &rarr; <code>11</code><br>off by two</li>
+    <li><code>10 TOTAL=5</code> then <code>LIST</code><br>lists as <code>TO TAL = 5</code></li>
+    <li><code>LOAD ONERRFIX.BAS</code><br>the ONERR leak, and the
+        <code>CALL -3288</code> that pops it</li>
+  </ul>
+
+  <h2>The IDE</h2>
+  <p style="margin:0 0 16px"><a href="idedemo.html" style="color:#7ddc7d">Open the
+     windowed front end</a> &mdash; menu bar, Machine pane, program listing.
+     The same 16-bit binary, in 80&times;43 text mode.</p>
+
+  <p class="note">Click the screen first so it takes the keyboard.
+     Typing is uppercase, as the Apple was.</p>
+</aside>
+<script>
+  Dos(document.getElementById("dos"), {
+    url: "asoft.jsdos",
+    // 80x25 text; let the canvas fill the frame rather than letterboxing hard
+    renderAspect: "4/3",
+    autoStart: true,
+    kiosk: true
+  });
+</script>
+</body>
+</html>

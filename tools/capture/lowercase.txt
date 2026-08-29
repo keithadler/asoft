@@ -1,0 +1,9 @@
+10 print "hi there"
+20 for i = 1 to 3: print i;" ";: next
+30 print
+40 a$ = "mixed Case String": print a$
+50 print len(a$);" ";left$(a$,5)
+list
+run
+print 1+1
+Print "MiXeD"

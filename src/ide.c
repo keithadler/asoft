@@ -509,4 +509,14 @@ void ide_start(void)
     prog_top = 0;
     input_len = 0;
     quitting = 0;
+
+    /* The mockup's Apple pane opens with this, and it is worth having: it
+     * says which of the two front ends you are looking at. The console build
+     * deliberately prints nothing, because the reference binary prints
+     * nothing and every line of its output is compared. */
+    scr_puts("APPLESOFT BASIC FOR DOS");
+    scr_newline();
+    scr_puts("THE ROM'S BUGS, ON PURPOSE");
+    scr_newline();
+    scr_newline();
 }

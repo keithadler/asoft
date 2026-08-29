@@ -1,0 +1,12 @@
+]]]]]]10  PRINT "hi there"
+20  FOR I = 1 TO 3: PRINT I;" ";: NEXT 
+30  PRINT 
+40 A$ = "mixed Case String": PRINT A$
+50  PRINT  LEN (A$);" "; LEFT$ (A$,5)
+]hi there
+1 2 3 
+mixed Case String
+17 mixed
+]2
+]MiXeD
+]

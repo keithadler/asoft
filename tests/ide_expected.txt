@@ -1,17 +1,17 @@
 +--------------------------------------------------------------------------------+
 |  File   Run   Bugs   Debug   Help                                              |
 |╔═══════════════ Apple ][ ═══════════════╗░╔═════════════ Machine ═════════════╗|
-|║]10 PRINT "HI"                          ║░║───────────────────────────────────║|
-|║]RUN                                    ║░║TXTTAB   $0801                     ║|
-|║HI                                      ║░║VARTAB   $080D                     ║|
-|║]HTAB 10: PRINT POS(0)                  ║░║ARYTAB   $080D                     ║|
-|║11                                      ║░║STREND   $080D                     ║|
-|║]HTAB 10: PRINT POS(0)                  ║░║FRETOP   $9600                     ║|
-|║9                                       ║░║HIMEM    $9600                     ║|
-|║]                                       ║░║FRE(0)   36339                     ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║Control stack      0/240           ║|
-|║                                        ║░║                                   ║|
+|║APPLESOFT BASIC FOR DOS                 ║░║───────────────────────────────────║|
+|║THE ROM'S BUGS, ON PURPOSE              ║░║TXTTAB   $0801                     ║|
+|║                                        ║░║VARTAB   $080D                     ║|
+|║]10 PRINT "HI"                          ║░║ARYTAB   $080D                     ║|
+|║]RUN                                    ║░║STREND   $080D                     ║|
+|║HI                                      ║░║FRETOP   $9600                     ║|
+|║]HTAB 10: PRINT POS(0)                  ║░║HIMEM    $9600                     ║|
+|║11                                      ║░║FRE(0)   36339                     ║|
+|║]HTAB 10: PRINT POS(0)                  ║░║                                   ║|
+|║9                                       ║░║Control stack      0/240           ║|
+|║]                                       ║░║                                   ║|
 |║                                        ║░║Bugs active                        ║|
 |║                                        ║░║  ONERR leak         ON            ║|
 |║                                        ║░║  HTAB off-by-two    off           ║|

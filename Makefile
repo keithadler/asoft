@@ -37,6 +37,8 @@ check: build/asoft build/asoft-ide
 	@./tests/run_capture.sh tests 'FRE(0)=35491'
 	@./tests/run_capture.sh wide
 	@./tests/run_capture.sh remcolon
+	@./tests/run_capture.sh lowercase
+	@./tests/run_capture.sh mbfacc
 	@./tests/run_ide.sh
 	@./tests/run_ide_dos.sh
 
