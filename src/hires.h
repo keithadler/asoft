@@ -22,6 +22,10 @@
 #define LORES_W 40
 #define LORES_H 48
 
+/* The artifact rules over one row of 40 bytes, seven pixels each. Exposed
+ * because the text screen goes through them too. */
+void artifact_span(const unsigned char *row, int x0, int x1, unsigned char *out);
+
 /* Palette index (see gfx_palette) for one hi-res pixel. */
 int hires_pixel(int x, int y);
 

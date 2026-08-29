@@ -11,7 +11,7 @@ IDE   := src/ide.c src/tui_term.c src/tui_palette.c
 TESTS := $(wildcard tests/test_*.c)
 CORE  := $(filter-out src/main_%.c,$(SRC)) tests/host_stub.c
 
-all: build/asoft build/asoft-ide build/layout build/hgrdump
+all: build/asoft build/asoft-ide build/layout build/hgrdump build/textdump
 
 build/asoft: $(filter-out src/main_ide.c,$(SRC)) | build
 	$(CC) $(CFLAGS) -I. -o $@ $(filter-out src/main_ide.c,$(SRC)) $(LDLIBS)
@@ -24,6 +24,9 @@ build/layout: tools/layout.c $(filter-out src/main_%.c,$(SRC)) | build
 
 build/hgrdump: tools/hgrdump.c $(filter-out src/main_%.c,$(SRC)) | build
 	$(CC) $(CFLAGS) -I. -o $@ tools/hgrdump.c $(filter-out src/main_%.c,$(SRC)) $(LDLIBS)
+
+build/textdump: tools/textdump.c $(filter-out src/main_%.c,$(SRC)) | build
+	$(CC) $(CFLAGS) -I. -o $@ tools/textdump.c $(filter-out src/main_%.c,$(SRC)) $(LDLIBS)
 
 build:
 	mkdir -p build
