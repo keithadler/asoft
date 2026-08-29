@@ -359,6 +359,8 @@ static void primary(value *out)
     raise_err(ERR_SYNTAX);
 }
 
+static void rel_expr(value *out);
+
 static void unary_expr(value *out)
 {
     if (eat(T_MINUS)) {
@@ -370,6 +372,19 @@ static void unary_expr(value *out)
     }
     if (eat(T_PLUS)) {
         unary_expr(out);
+        return;
+    }
+    /* NOT is a unary operator wherever a term can start, not only at the head
+     * of an expression -- POKE 49236 + NOT SC,0 is real code, and it needs
+     * NOT to be reachable after a "+". Its operand is taken at relational
+     * precedence, which binds tighter than NOT itself, so NOT X + 1 is
+     * NOT (X + 1) while 3 + NOT X is 3 + (NOT X). Nested NOT works because
+     * that path comes back through here. */
+    if (eat(T_NOT)) {
+        rel_expr(out);
+        if (out->is_str)
+            raise_err(ERR_TYPEMISMATCH);
+        out->num = (out->num == 0.0) ? 1.0 : 0.0;
         return;
     }
     primary(out);

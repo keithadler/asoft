@@ -95,6 +95,16 @@ int tok_tokenize(const char *src, unsigned char *out, int outmax, int greedy)
             continue;
         }
 
+        /* "?" is PRINT. Applesoft stores it as the PRINT token rather than
+         * as itself, so LIST shows PRINT back -- which is why a program typed
+         * with "?" lists as though it never had one. */
+        if (*src == '?') {
+            EMIT(T_PRINT);
+            src++;
+            prev_ident = 0;
+            continue;
+        }
+
         /* Keyword scan. Greedy mode matches anywhere, which is what turns
          * TOTAL into "TO TAL". Non-greedy mode additionally requires that an
          * alphabetic keyword not be welded to an identifier on either side,
@@ -120,6 +130,17 @@ int tok_tokenize(const char *src, unsigned char *out, int outmax, int greedy)
                     best = i;
                 }
             }
+            /* Keyword matching ignores spaces, which is how PR INT becomes
+             * PRINT -- and is also why "A TO 3" would otherwise match AT
+             * across the space and leave a stray O. The ROM resolves that
+             * ambiguity by looking at what follows a matched AT: an N means
+             * the word was ATN, an O means it was really TO, and the A before
+             * it was a variable. Longest-match already covers ATN; this
+             * covers TO. */
+            if (best >= 0 && strcmp(keywords[best], "AT") == 0 &&
+                toupper((unsigned char)src[best_used]) == 'O')
+                best = -1;
+
             if (best >= 0) {
                 unsigned char t = (unsigned char)(TOK_FIRST + best);
                 {

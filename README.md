@@ -124,6 +124,38 @@ separately through `panes.c` and `tools/layout.c`.
 
 Shape-table `DRAW`/`XDRAW`, sound, and `PR#`/`IN#` are parsed and ignored.
 
+## Running other people's programs
+
+`tools/corpus.py <directory>` runs a pile of third-party Applesoft programs
+and reports what breaks. The corpus is not in this repository -- it is other
+people's code under their own licences -- so clone some and point the tool at
+it. It is not a pass/fail suite: many of those programs are interactive, or
+expect a disk, and stopping early is often correct. What it is good for is
+finding places where this interpreter refuses something real Applesoft
+accepted, because a syntax error in a program that ran on the hardware is a
+bug here, not there.
+
+Over 116 programs from eight repositories it found four, all since fixed:
+
+- **`?` was not PRINT.** Applesoft stores `?` as the PRINT token, so a program
+  typed with `?` lists back as though it never had one.
+- **`NOT` was only usable at the head of an expression**, so
+  `POKE 49236 + NOT SC,0` -- real code -- was a syntax error. It is a unary
+  operator wherever a term can start, taking its operand at relational
+  precedence.
+- **`ATN` came apart into `AT` + `N`.**
+- **`A TO 3` came apart into `AT` + `O3`.** Keyword matching ignores spaces,
+  which is how `PR INT` becomes PRINT -- and is exactly why `A TO` matched AT
+  across the gap. The ROM resolves it by looking at what follows a matched
+  AT: an N means the word was ATN, an O means it was really TO.
+
+What is left, and why none of it is a bug here: three programs use `NEXT I,J`,
+which this reference rejects too; one relies on `DIM A` without a subscript,
+which it also rejects; one is defeated by the greedy tokenizer, which is a
+deliberate ROM bug; one is Microsoft BASIC (`DEFINT A-Z`); one uses string
+`DEF FN`, which Applesoft has never had; and two are wrapped listings rather
+than source, their DATA statements continued across lines with no line number.
+
 ## Where it differs from the reference
 
 Two places, both measured rather than assumed:
