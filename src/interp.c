@@ -6,6 +6,7 @@
 #include "host.h"
 #include "mbf.h"
 #include "screen.h"
+#include "shape.h"
 #include "token.h"
 
 #include <setjmp.h>
@@ -90,6 +91,15 @@ static void skip_to_eos(void)
 {
     /* End of statement: a colon or the end of the line. */
     while (*ip && *ip != ':')
+        ip++;
+}
+
+static void skip_to_eol(void)
+{
+    /* REM takes the whole line, colons included. Stopping at the colon would
+     * make the rest of a comment run as code, which is a syntax error in any
+     * remark that explains itself with a list. */
+    while (*ip)
         ip++;
 }
 
@@ -1216,7 +1226,7 @@ static void exec_statement(void)
     case T_DEF:     do_def(); return;
     case T_POKE:    do_poke(); return;
     case T_CALL:    do_call(); return;
-    case T_REM:     skip_to_eos(); return;
+    case T_REM:     skip_to_eol(); return;
     case T_DATA:    skip_to_eos(); return;
 
     case T_END:     running = 0; jumped = 1; return;
@@ -1442,8 +1452,16 @@ static void exec_statement(void)
     case T_TRACE:  case T_NOTRACE: case T_SHLOAD:
         return;
     /* SPEED=, ROT= and SCALE= carry the "=" inside the keyword itself, so
-     * there is no separate T_EQ token to consume. */
-    case T_SPEED: case T_ROT: case T_SCALE:
+     * there is no separate T_EQ token to consume. ROT and SCALE live in zero
+     * page, where DRAW reads them -- so POKE 232 and SCALE= are the same
+     * thing, and a program that does the former still works. */
+    case T_ROT:
+        a2mem[ZP_ROT] = (unsigned char)((long)need_num() & 0xFF);
+        return;
+    case T_SCALE:
+        a2mem[ZP_SCALE] = (unsigned char)((long)need_num() & 0xFF);
+        return;
+    case T_SPEED:
         (void)need_num();
         return;
     case T_PRNUM: case T_INNUM:
@@ -1512,15 +1530,28 @@ static void exec_statement(void)
         }
         return;
     }
-    /* Shape tables are their own project; the arguments are still checked. */
-    case T_DRAW: case T_XDRAW:
-        (void)need_num();
+    case T_DRAW: case T_XDRAW: {
+        /* Without AT, the shape starts wherever the last plot left the pen,
+         * which is how a program walks a shape across the screen. */
+        int n = (int)need_num();
+        int x, y, scale;
+        a2addr table = a2_word(ZP_SHAPE);
+
         if (eat(T_AT)) {
-            (void)need_num();
+            x = coord(279);
             expect(',');
-            (void)need_num();
+            y = coord(191);
+        } else {
+            gfx_last(&x, &y);
         }
+        /* SCALE=0 means 256, not "no scale". */
+        scale = a2mem[ZP_SCALE];
+        if (scale == 0)
+            scale = 256;
+        if (!shape_draw(table, n, x, y, a2mem[ZP_ROT], scale, t == T_XDRAW))
+            raise_err(ERR_ILLEGALQTY);
         return;
+    }
 
     case T_LOAD: case T_SAVE: {
         char path[128];

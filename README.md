@@ -123,3 +123,68 @@ written to the API but unverified. Its pane contents and layout are checked
 separately through `panes.c` and `tools/layout.c`.
 
 Shape-table `DRAW`/`XDRAW`, sound, and `PR#`/`IN#` are parsed and ignored.
+
+## Graphics
+
+`GR` and `HGR` write into the Apple's page memory, laid out the way the
+hardware wanted it rather than the way anything wants to draw it: hi-res rows
+are interleaved in three groups of eight, with eight unused bytes at the end
+of each group. `PEEK` sees exactly what the machine would have seen.
+
+Two front ends display those pages. The DOS build uses VGA mode 13h, where
+320x200 holds hi-res (280x192) with a border and lo-res (40x48) at exactly 8x4
+per cell; plotted pixels go straight to video memory as they happen, and a
+`POKE` or a screen clear triggers a full repaint. The native build draws the
+same pages with terminal half-blocks.
+
+### Colour is a property of position
+
+`HCOLOR` does not choose a colour so much as a bit pattern. Green lights only
+odd columns and violet only even ones, so a single green dot at an even `x`
+draws nothing at all. The pixel clock ran at the colour subcarrier frequency,
+so where a dot sat decided what came out of the display:
+
+- a lit pixel reads white if either neighbour is lit
+- a lone dot fills a whole colour cycle, and so is two screen pixels wide
+
+Which is why `HPLOT 0,0 TO 0,191` in white comes out **violet**: a one-pixel
+vertical line has no horizontal neighbour, so it takes its column's colour. On
+an odd column the same line is green. That is the hardware, not a bug, and it
+is why hi-res art is full of two-pixel-wide strokes.
+
+The widening happens in the rasterizer rather than in the plot, so page memory
+stays honest: `PEEK` still sees the single bit that was set.
+
+### Shape tables
+
+`DRAW`, `XDRAW`, `ROT=` and `SCALE=` work. A shape is a string of moves packed
+three to a byte -- two that can plot and a third that only moves -- and a zero
+byte ends it. The packing rules are awkward, because a section cannot always
+hold what you want without the byte reading as the terminator; `tools/mkshape.py`
+encodes vectors into a table and emits the `DATA` statements.
+
+`ROT=` and `SCALE=` live in zero page at $F9 and $E7, so `POKE 249,16` and
+`ROT=16` are the same thing. `SCALE=0` means 256, not "no scale". Every plot
+that lands on an already-lit pixel bumps the collision counter at $EA, so a
+program can tell that two shapes overlap without reading the screen back.
+
+One deliberate divergence: the ROM only turns cleanly at the quadrants, and in
+between walks a distorted version of the shape that depends on the scale.
+`ROT=` here rounds to the nearest quadrant instead -- right on the multiples of
+16 that programs actually use, an approximation elsewhere.
+
+### Demos
+
+    ./build/asoft -r web/bundle/HGRDEMO.BAS    # colour rules, sine, borders
+    ./build/asoft -r web/bundle/HGRSHAP.BAS    # scale, rotation, XDRAW, collisions
+
+`build/hgrdump program.bas out.bmp [scale]` renders a program's graphics page
+to a file, which is how the colour rules are checked without squinting at a
+terminal.
+
+While hi-res is up the DOS build prints nothing at all, because that is what
+the Apple did: the prompt went to the text page, which was not the page on
+screen. Type `TEXT` blind and press return to get back. The terminal build
+does not do this -- it has only one screen, and hiding the prompt there would
+just look broken.
+

@@ -35,7 +35,7 @@ mkdir -p web/bundle
 # -k16384   16K stack; the recursive-descent evaluator wants more than the 4K default
 wcl -bcl=dos -ml -q -k16384 -fe=$OUT \
     src/mbf.c src/token.c src/a2mem.c src/errs.c src/bugs.c src/gfx.c \
-    src/hires.c src/display_dos.c src/screen.c src/panes.c src/interp.c \
+    src/hires.c src/shape.c src/display_dos.c src/screen.c src/panes.c src/interp.c \
     src/main_stdio.c
 
 rm -f *.obj src/*.obj 2>/dev/null || true

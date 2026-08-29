@@ -32,6 +32,10 @@
 #define ZP_FRETOP   0x6F
 #define ZP_MEMSIZ   0x73
 #define ZP_CURLIN   0x75
+#define ZP_SCALE    0xE7          /* SCALE= */
+#define ZP_SHAPE    0xE8          /* pointer to the shape table */
+#define ZP_COLLISION 0xEA         /* bumped whenever DRAW hits a lit pixel */
+#define ZP_ROT      0xF9          /* ROT= */
 #define ZP_ONERRFLAG 0xD8
 #define ZP_ERRLIN   0xDA
 #define ZP_ERRNUM   0xDE

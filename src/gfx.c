@@ -69,6 +69,27 @@ int gfx_get_color(void) { return color; }
 int gfx_get_hcolor(void) { return hcolor; }
 a2addr gfx_hpage(void) { return hpage; }
 
+int gfx_hscrn(int x, int y)
+{
+    a2addr a;
+    if (x < 0 || x >= 280 || y < 0 || y >= 192)
+        return 0;
+    a = gfx_hires_row(hpage, y) + x / 7;
+    return (a2mem[a] >> (x % 7)) & 1;
+}
+
+void gfx_hxor(int x, int y)
+{
+    a2addr a;
+    if (x < 0 || x >= 280 || y < 0 || y >= 192)
+        return;
+    a = gfx_hires_row(hpage, y) + x / 7;
+    a2mem[a] ^= (unsigned char)(1 << (x % 7));
+    last_x = x;
+    last_y = y;
+    gfx_touch(a);
+}
+
 a2addr gfx_text_row(int row)
 {
     return (a2addr)(LORES_PAGE1 + (row & 7) * 0x80 + (row >> 3) * 0x28);

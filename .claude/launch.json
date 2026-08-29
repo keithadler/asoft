@@ -12,6 +12,14 @@
         "web"
       ],
       "port": 8129
+    },
+    {
+      "name": "asoft-capture",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "tools/capture/server.py"
+      ],
+      "port": 8130
     }
   ]
 }

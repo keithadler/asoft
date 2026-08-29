@@ -30,6 +30,7 @@ check: build/asoft
 	done
 	@./tests/run_capture.sh tests 'FRE(0)=35491'
 	@./tests/run_capture.sh wide
+	@./tests/run_capture.sh remcolon
 
 clean:
 	rm -rf build

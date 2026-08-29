@@ -51,6 +51,13 @@ int main(int argc, char **argv)
     if (!it_load(argv[1])) { fprintf(stderr, "cannot load %s\n", argv[1]); return 1; }
     it_line("RUN");
 
+    /* Output goes nowhere here, so an error would otherwise be silent and the
+     * picture would just come out wrong. */
+    if (a2mem[ZP_ERRNUM] != 0)
+        fprintf(stderr, "warning: stopped with error %d at line %u\n",
+                a2mem[ZP_ERRNUM],
+                (unsigned)(a2mem[ZP_ERRLIN] | (a2mem[ZP_ERRLIN + 1] << 8)));
+
     if (gfx_mode() == GFX_TEXT) {
         fprintf(stderr, "the program left the display in text mode; nothing to dump\n");
         return 1;

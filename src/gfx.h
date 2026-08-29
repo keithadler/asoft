@@ -77,6 +77,9 @@ void gfx_hlin(int x1, int x2, int y);
 void gfx_vlin(int y1, int y2, int x);
 int  gfx_scrn(int x, int y);              /* SCRN(x,y) */
 
+int  gfx_hscrn(int x, int y);             /* is this hi-res pixel lit? */
+void gfx_hxor(int x, int y);              /* toggle it, which is what XDRAW does */
+
 void gfx_hplot(int x, int y);             /* hi-res, x 0..279 y 0..191 */
 void gfx_hplot_to(int x, int y);          /* line from the last point */
 void gfx_last(int *x, int *y);
