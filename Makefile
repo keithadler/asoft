@@ -7,7 +7,7 @@ LDLIBS  ?= -lm
 # build-dos.sh. ide.c and the tui backends belong to the windowed front end,
 # which is a separate binary from the plain console one.
 SRC   := $(filter-out src/display_dos.c src/tui_%.c src/ide.c,$(wildcard src/*.c))
-IDE   := src/ide.c src/tui_term.c
+IDE   := src/ide.c src/tui_term.c src/tui_palette.c
 TESTS := $(wildcard tests/test_*.c)
 CORE  := $(filter-out src/main_%.c,$(SRC)) tests/host_stub.c
 

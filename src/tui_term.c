@@ -37,9 +37,16 @@ static const char *glyph(int ch)
     }
 }
 
-/* The sixteen CGA colours as ANSI, bright ones via the 90/100 range. */
-static int ansi_fg(int c) { return (c < 8) ? 30 + c : 90 + (c - 8); }
-static int ansi_bg(int c) { return (c < 8) ? 40 + c : 100 + (c - 8); }
+/* Truecolour, so the terminal shows the same palette the DAC is loaded with
+ * on DOS rather than whatever sixteen colours the user's theme happens to
+ * define. */
+static void put_colour(int fg, int bg)
+{
+    const unsigned char *f = tui_palette[fg & 15];
+    const unsigned char *b = tui_palette[bg & 15];
+    printf("\033[38;2;%d;%d;%d;48;2;%d;%d;%dm",
+           f[0], f[1], f[2], b[0], b[1], b[2]);
+}
 
 void tui_init(void)
 {
@@ -140,6 +147,13 @@ int tui_cell(int x, int y)
     return buf.ch[y][x];
 }
 
+unsigned char tui_attr(int x, int y)
+{
+    if (x < 0 || x >= TUI_W || y < 0 || y >= TUI_H)
+        return 0;
+    return buf.at[y][x];
+}
+
 void tui_cursor(int x, int y) { cur_x = x; cur_y = y; }
 
 void tui_flush(void)
@@ -156,7 +170,7 @@ void tui_flush(void)
             unsigned char a = buf.at[y][x];
             const char *g;
             if (a != last) {
-                printf("\033[%d;%dm", ansi_fg(a & 15), ansi_bg(a >> 4));
+                put_colour(a & 15, a >> 4);
                 last = a;
             }
             g = glyph(buf.ch[y][x]);

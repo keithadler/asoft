@@ -23,39 +23,44 @@
 #include <stdio.h>
 #include <string.h>
 
-#define APPLE_W 40
-#define APPLE_H 24
+/* The layout owes more to a modern terminal application than to 1990: no
+ * frames, no desktop pattern, sections separated by space and a coloured
+ * heading. Everything is placed against these numbers rather than nested in
+ * boxes, so moving a section is one edit.
+ */
+#define MENU_Y      0
+#define CHIP_Y      1
+#define HEAD_Y      3
 
-/* The frames. Each is x, y, width, height; contents sit one cell inside. */
-#define APPLE_X 0
-#define APPLE_Y 1
-#define APPLE_BW (APPLE_W + 2)
-#define APPLE_BH (APPLE_H + 2)
+#define APPLE_W     40
+#define APPLE_H     24
+#define APPLE_X     1
+#define APPLE_Y     4
 
-#define PROG_X 0
-#define PROG_Y (APPLE_Y + APPLE_BH)
-#define PROG_BW APPLE_BW
-#define PROG_BH (TUI_H - 1 - PROG_Y)
-#define PROG_LINES (PROG_BH - 2)
+#define MACH_X      44
+#define MACH_Y      4
+#define MACH_H      (TUI_H - 1 - MACH_Y)
 
-#define MACH_X (APPLE_BW + 1)
-#define MACH_Y 1
-#define MACH_BW (PANE_WIDTH + 2)
-#define MACH_BH (TUI_H - 1 - MACH_Y)
+#define PROG_HEAD_Y 29
+#define PROG_X      1
+#define PROG_W      40
+#define PROG_Y      30
+#define PROG_LINES  (TUI_H - 1 - PROG_Y)
 
-#define STATUS_Y (TUI_H - 1)
+#define STATUS_Y    (TUI_H - 1)
 
-#define A_DESK   ATTR(C_LTBLUE, C_BLUE)
-#define A_FRAME  ATTR(C_WHITE, C_BLUE)
-#define A_APPLE  ATTR(C_LTGREEN, C_BLACK)
-#define A_PLAIN  ATTR(C_LTGRAY, C_BLUE)
-#define A_HEAD   ATTR(C_LTCYAN, C_BLUE)
-#define A_WARN   ATTR(C_YELLOW, C_BLUE)
-#define A_BAR    ATTR(C_BLACK, C_LTGRAY)
-#define A_HOT    ATTR(C_RED, C_LTGRAY)
-#define A_SEL    ATTR(C_WHITE, C_GREEN)
-#define A_MENU   ATTR(C_BLACK, C_LTGRAY)
-#define A_EDIT   ATTR(C_WHITE, C_BLACK)
+#define A_BG     ATTR(C_TEXT,   C_BG)
+#define A_DIM    ATTR(C_DIM,    C_BG)
+#define A_HEAD   ATTR(C_CYAN,   C_BG)
+#define A_KEY    ATTR(C_CYAN,   C_BG)
+#define A_CHIP   ATTR(C_BG,     C_CYAN)
+#define A_APPLE  ATTR(C_GREEN,  C_PANEL)
+#define A_PLAIN  ATTR(C_TEXT,   C_BG)
+#define A_WARN   ATTR(C_YELLOW, C_BG)
+#define A_SEL    ATTR(C_BRIGHT, C_SEL)
+#define A_MENU   ATTR(C_TEXT,   C_PANEL)
+#define A_MENUSEL ATTR(C_BRIGHT, C_SEL)
+#define A_EDIT   ATTR(C_BRIGHT, C_SEL)
 
 static char cells[APPLE_H][APPLE_W];
 static int  arow, acol;               /* where output has reached */
@@ -65,6 +70,7 @@ static int  input_len;
 static int  quitting;
 static int  break_seen;
 static char status[80];
+static char loaded[40];               /* shown in the identity strip */
 
 /* Which pane the keyboard is talking to. The prompt is the Apple as it was:
  * type a numbered line and it is stored. The editor is what an IDE is for --
@@ -82,10 +88,6 @@ static int  ed_row, ed_col;
 static char ed_buf[256];
 static int  ed_dirty;
 
-static const char *status_term =
-    "TAB/click Edit   F5 Run   F9 List   F3 Load   F2 Save   F10 Menu   Ctrl-Q Quit";
-static const char *status_edit =
-    "TAB/click Prompt   F5 Run   F8 Delete line   F10 Menu   Ctrl-Q Quit";
 
 /* ------------------------------------------------------------ apple screen */
 
@@ -314,62 +316,88 @@ static int menu_len(const char **it)
 
 static void draw_menubar(int active)
 {
-    int m, x = 2;
+    int m, x = 1;
 
-    tui_fill(0, 0, TUI_W, 1, ' ', A_BAR);
+    tui_fill(0, MENU_Y, TUI_W, 1, ' ', A_BG);
     for (m = 0; m < MENU_COUNT; m++) {
         const char *t = menu_title[m];
-        unsigned char a = (m == active) ? A_SEL : A_BAR;
-        menu_x[m] = x;
-        tui_put(x - 1, 0, ' ', a);
-        tui_put(x, 0, t[0], (m == active) ? a : A_HOT);
-        tui_puts(x + 1, 0, t + 1, a);
-        tui_put(x + (int)strlen(t) + 1, 0, ' ', a);
-        x += (int)strlen(t) + 3;
+        int len = (int)strlen(t);
+        unsigned char a = (m == active) ? A_SEL : A_DIM;
+        menu_x[m] = x + 1;
+        tui_put(x, MENU_Y, ' ', a);
+        tui_puts(x + 1, MENU_Y, t, a);
+        tui_put(x + len + 1, MENU_Y, ' ', a);
+        x += len + 4;
     }
+}
+
+/* The identity strip: a chip, what this is, and what is loaded. */
+static void draw_chip(void)
+{
+    const char *name = loaded[0] ? loaded : "(no program)";
+    int len = (int)strlen(name);
+
+    tui_fill(0, CHIP_Y, TUI_W, 1, ' ', A_BG);
+    tui_puts(1, CHIP_Y, " asoft ", A_CHIP);
+    tui_puts(10, CHIP_Y, "Applesoft BASIC for DOS", A_DIM);
+    if (len < TUI_W - 2)
+        tui_puts(TUI_W - 1 - len, CHIP_Y, name, A_DIM);
+}
+
+/* A heading: the name in the accent colour, a note beside it in grey. */
+static void heading(int x, int y, const char *name, const char *note)
+{
+    tui_puts(x, y, name, A_HEAD);
+    if (note)
+        tui_puts(x + (int)strlen(name) + 2, y, note, A_DIM);
 }
 
 static void draw_apple(void)
 {
     int y, x;
-    tui_box(APPLE_X, APPLE_Y, APPLE_BW, APPLE_BH, "Apple ][", A_FRAME);
-    for (y = 0; y < APPLE_H; y++)
+
+    heading(APPLE_X, HEAD_Y, "Apple ][", "40x24");
+    for (y = 0; y < APPLE_H; y++) {
         for (x = 0; x < APPLE_W; x++)
-            tui_put(APPLE_X + 1 + x, APPLE_Y + 1 + y, cells[y][x], A_APPLE);
+            tui_put(APPLE_X + x, APPLE_Y + y, cells[y][x], A_APPLE);
+    }
 }
 
 static void draw_program(void)
 {
-    char line[300];
+    char line[300], note[32];
     int n = prog_count();
     int y;
 
-    tui_box(PROG_X, PROG_Y, PROG_BW, PROG_BH,
-            (focus == FOCUS_EDIT) ? "Program - editing" : "Program", A_FRAME);
+    sprintf(note, "%d line%s", n, n == 1 ? "" : "s");
+    heading(PROG_X, PROG_HEAD_Y, "Program",
+            (focus == FOCUS_EDIT) ? "editing" : note);
 
     for (y = 0; y < PROG_LINES; y++) {
         int row = prog_top + y;
-        unsigned char a = A_PLAIN;
-        int i;
+        int editing = (focus == FOCUS_EDIT && row == ed_row);
+        unsigned char a = editing ? A_EDIT : A_PLAIN;
+        unsigned char na = editing ? A_EDIT : A_DIM;
+        int i, col;
 
-        for (i = 0; i < PROG_BW - 2; i++)
-            tui_put(PROG_X + 1 + i, PROG_Y + 1 + y, ' ', A_PLAIN);
+        for (i = 0; i < PROG_W; i++)
+            tui_put(PROG_X + i, PROG_Y + y, ' ', editing ? A_EDIT : A_BG);
         if (row > n)
             continue;
-
-        if (focus == FOCUS_EDIT && row == ed_row) {
+        if (editing) {
             strncpy(line, ed_buf, sizeof(line) - 1);
             line[sizeof(line) - 1] = '\0';
-            a = A_EDIT;
-            for (i = 0; i < PROG_BW - 2; i++)
-                tui_put(PROG_X + 1 + i, PROG_Y + 1 + y, ' ', a);
         } else if (row < n) {
             prog_text(row, line, (int)sizeof(line));
         } else {
             continue;
         }
-        line[PROG_BW - 3] = '\0';
-        tui_puts(PROG_X + 1, PROG_Y + 1 + y, line, a);
+        line[PROG_W - 1] = '\0';
+
+        /* The line number is secondary; the code is what you are reading. */
+        for (col = 0; line[col] && line[col] >= '0' && line[col] <= '9'; col++)
+            tui_put(PROG_X + col, PROG_Y + y, line[col], na);
+        tui_puts(PROG_X + col, PROG_Y + y, line + col, a);
     }
 }
 
@@ -378,38 +406,60 @@ static void draw_machine(void)
     pane_line lines[PANE_MAXLINES];
     int n, y;
 
-    tui_box(MACH_X, MACH_Y, MACH_BW, MACH_BH, "Machine", A_FRAME);
+    heading(MACH_X, HEAD_Y, "Machine", 0);
     n = pane_machine(lines, PANE_MAXLINES);
-    for (y = 0; y < MACH_BH - 2; y++) {
+    for (y = 0; y < MACH_H; y++) {
         unsigned char a = A_PLAIN;
         int i;
+
         for (i = 0; i < PANE_WIDTH; i++)
-            tui_put(MACH_X + 1 + i, MACH_Y + 1 + y, ' ', A_PLAIN);
+            tui_put(MACH_X + i, MACH_Y + y, ' ', A_BG);
         if (y >= n)
             continue;
         if (lines[y].style == PL_HEADING) a = A_HEAD;
         else if (lines[y].style == PL_WARN) a = A_WARN;
         if (lines[y].style == PL_RULE) {
             for (i = 0; i < PANE_WIDTH; i++)
-                tui_put(MACH_X + 1 + i, MACH_Y + 1 + y, G_RULE, A_PLAIN);
+                tui_put(MACH_X + i, MACH_Y + y, G_RULE, A_DIM);
         } else {
-            tui_puts(MACH_X + 1, MACH_Y + 1 + y, lines[y].text, a);
+            tui_puts(MACH_X, MACH_Y + y, lines[y].text, a);
         }
     }
 }
 
+/* "F5 Run" with the key in the accent colour and the word beside it in grey,
+ * which is the whole of what a status bar has to do. */
 static void draw_status(void)
 {
-    const char *text = status[0] ? status
-                     : (focus == FOCUS_EDIT ? status_edit : status_term);
-    tui_fill(0, STATUS_Y, TUI_W, 1, ' ', A_BAR);
-    tui_puts(1, STATUS_Y, text, A_BAR);
+    static const char *term_keys[] = {
+        "Tab", "Edit", "F5", "Run", "F9", "List", "F3", "Load",
+        "F2", "Save", "F10", "Menu", "^Q", "Quit", 0
+    };
+    static const char *edit_keys[] = {
+        "Tab", "Prompt", "F5", "Run", "F8", "Delete", "F10", "Menu",
+        "^Q", "Quit", 0
+    };
+    const char **k = (focus == FOCUS_EDIT) ? edit_keys : term_keys;
+    int x = 1, i;
+
+    tui_fill(0, STATUS_Y, TUI_W, 1, ' ', A_BG);
+    if (status[0]) {
+        tui_puts(1, STATUS_Y, status, A_WARN);
+        return;
+    }
+    for (i = 0; k[i]; i += 2) {
+        tui_puts(x, STATUS_Y, k[i], A_KEY);
+        x += (int)strlen(k[i]) + 1;
+        tui_puts(x, STATUS_Y, k[i + 1], A_DIM);
+        x += (int)strlen(k[i + 1]) + 3;
+    }
 }
 
 static void draw_all(int active_menu)
 {
-    tui_fill(0, 1, TUI_W, TUI_H - 2, G_SHADE, A_DESK);
+    tui_clear(A_BG);
     draw_menubar(active_menu);
+    draw_chip();
     draw_apple();
     draw_program();
     draw_machine();
@@ -423,13 +473,13 @@ static void place_cursor(void)
 
     if (focus == FOCUS_EDIT) {
         col = ed_col;
-        if (col > PROG_BW - 3) col = PROG_BW - 3;
-        tui_cursor(PROG_X + 1 + col, PROG_Y + 1 + (ed_row - prog_top));
+        if (col > PROG_W - 1) col = PROG_W - 1;
+        tui_cursor(PROG_X + col, PROG_Y + (ed_row - prog_top));
         return;
     }
     col = acol + input_len;
     if (col > APPLE_W - 1) col = APPLE_W - 1;
-    tui_cursor(APPLE_X + 1 + col, APPLE_Y + 1 + arow);
+    tui_cursor(APPLE_X + col, APPLE_Y + arow);
 }
 
 /* The line being typed is drawn over the Apple screen rather than committed
@@ -441,16 +491,17 @@ static void overlay_input(void)
     if (focus != FOCUS_TERM)
         return;
     for (i = 0; i < input_len && acol + i < APPLE_W; i++)
-        tui_put(APPLE_X + 1 + acol + i, APPLE_Y + 1 + arow, input[i], A_APPLE);
+        tui_put(APPLE_X + acol + i, APPLE_Y + arow, input[i], A_APPLE);
 }
 
 /* ------------------------------------------------------------------ dialogs */
 
+/* A panel, not a framed box: a lifted surface with its name along the top. */
 static void dialog_box(int w, int h, const char *title, int *ox, int *oy)
 {
     int x = (TUI_W - w) / 2, y = (TUI_H - h) / 2;
     tui_fill(x, y, w, h, ' ', A_MENU);
-    tui_box(x, y, w, h, title, A_MENU);
+    tui_puts(x + 2, y, title, ATTR(C_CYAN, C_PANEL));
     *ox = x; *oy = y;
 }
 
@@ -512,6 +563,8 @@ static void ensure_prompt(void)
         scr_raw_puts("]");
 }
 
+void ide_set_loaded(const char *name);
+
 static void do_load(void)
 {
     char path[128];
@@ -519,6 +572,7 @@ static void do_load(void)
         return;
     if (it_load(path)) {
         prog_top = 0;
+        ide_set_loaded(path);
         sprintf(status, "Loaded %s", path);
     } else {
         message("Load", "Could not open that file.");
@@ -598,10 +652,13 @@ static void menu_loop(int start)
 
         draw_all(m);
         tui_fill(x, y, w, n + 2, ' ', A_MENU);
-        tui_box(x, y, w, n + 2, 0, A_MENU);
-        for (i = 0; i < n; i++)
-            tui_puts(x + 2, y + 1 + i, items[i],
-                     (i == item) ? A_SEL : A_MENU);
+        for (i = 0; i < n; i++) {
+            int j;
+            unsigned char a = (i == item) ? A_MENUSEL : A_MENU;
+            for (j = 0; j < w; j++)
+                tui_put(x + j, y + 1 + i, ' ', a);
+            tui_puts(x + 2, y + 1 + i, items[i], a);
+        }
         tui_cursor(-1, -1);
         tui_flush();
 
@@ -673,23 +730,23 @@ static int pump(int want_line, char *buf, int max)
                 if (hit >= 0) { menu_loop(hit); ensure_prompt(); }
                 continue;
             }
-            if (mx > PROG_X && mx < PROG_X + PROG_BW - 1 &&
-                my > PROG_Y && my < PROG_Y + PROG_BH - 1) {
-                int row = prog_top + (my - PROG_Y - 1);
+            if (mx >= PROG_X && mx < PROG_X + PROG_W &&
+                my >= PROG_Y && my < PROG_Y + PROG_LINES) {
+                int row = prog_top + (my - PROG_Y);
                 int n = prog_count();
                 if (focus == FOCUS_EDIT)
                     ed_commit();
                 focus = FOCUS_EDIT;
                 ed_row = (row > n) ? n : row;
                 ed_load();
-                ed_col = mx - PROG_X - 1;
+                ed_col = mx - PROG_X;
                 if (ed_col > (int)strlen(ed_buf))
                     ed_col = (int)strlen(ed_buf);
                 ed_scroll_into_view();
                 continue;
             }
-            if (mx > APPLE_X && mx < APPLE_X + APPLE_BW - 1 &&
-                my > APPLE_Y && my < APPLE_Y + APPLE_BH - 1) {
+            if (mx >= APPLE_X && mx < APPLE_X + APPLE_W &&
+                my >= APPLE_Y && my < APPLE_Y + APPLE_H) {
                 if (focus == FOCUS_EDIT)
                     ed_commit();
                 focus = FOCUS_TERM;
@@ -802,6 +859,20 @@ void ide_draw_once(void)
     draw_all(-1);
     tui_cursor(-1, -1);
     tui_flush();
+}
+
+/* Just the file's name, not the path it was reached by: the strip is there to
+ * say which program is loaded, and a directory tells you nothing about that. */
+void ide_set_loaded(const char *name)
+{
+    const char *base = name ? name : "";
+    const char *p;
+
+    for (p = base; *p; p++)
+        if (*p == '/' || *p == '\\')
+            base = p + 1;
+    strncpy(loaded, base, sizeof(loaded) - 1);
+    loaded[sizeof(loaded) - 1] = '\0';
 }
 
 void ide_start(void)

@@ -16,23 +16,30 @@
 #define TUI_W 80
 #define TUI_H 43
 
-/* Colours, in the order the hardware numbered them. */
-#define C_BLACK 0
-#define C_BLUE 1
-#define C_GREEN 2
-#define C_CYAN 3
-#define C_RED 4
-#define C_MAGENTA 5
-#define C_BROWN 6
-#define C_LTGRAY 7
-#define C_DKGRAY 8
-#define C_LTBLUE 9
-#define C_LTGREEN 10
-#define C_LTCYAN 11
-#define C_LTRED 12
-#define C_LTMAGENTA 13
-#define C_YELLOW 14
-#define C_WHITE 15
+/* Sixteen slots, and the palette behind them is ours rather than the
+ * hardware's. A terminal gets the RGB directly; VGA text mode has its
+ * sixteen attributes mapped through the DAC, so the same values can be
+ * loaded there. That is what lets a 16-bit DOS binary look like this
+ * instead of like 1985.
+ */
+#define C_BG      0        /* near-black, faintly blue */
+#define C_PANEL   1        /* a surface lifted just off the background */
+#define C_DIM     2        /* labels, line numbers, anything secondary */
+#define C_TEXT    3
+#define C_BRIGHT  4
+#define C_CYAN    5        /* headings, key names, the accent */
+#define C_GREEN   6
+#define C_YELLOW  7
+#define C_PURPLE  8
+#define C_PINK    9
+#define C_SEL    10        /* the selected row's background */
+#define C_WHITE  11
+#define C_TEAL   12
+#define C_RED    13
+#define C_ORANGE 14
+#define C_BLACK  15
+
+extern const unsigned char tui_palette[16][3];
 
 #define ATTR(fg, bg) ((unsigned char)(((bg) << 4) | (fg)))
 
@@ -67,6 +74,7 @@ void tui_flush(void);
  * Used to dump a drawn screen as text, which is how the layout is checked on
  * DOS -- there is no pty there to read an escape stream back out of. */
 int  tui_cell(int x, int y);
+unsigned char tui_attr(int x, int y);
 
 /* Keys. Ordinary characters come back as themselves; the rest as one of
  * these, above anything a byte can hold. */

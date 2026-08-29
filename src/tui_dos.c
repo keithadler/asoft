@@ -40,6 +40,37 @@ static unsigned char glyph(int ch)
     }
 }
 
+/* Text mode has sixteen attributes, but what those attributes look like is
+ * ours to decide: each one indexes an EGA palette register, which indexes a
+ * DAC entry, which holds six bits per channel. Point the sixteen registers
+ * straight at DAC entries 0..15 and load our own colours into them, and a
+ * 16-bit DOS binary stops being limited to the 1981 palette.
+ *
+ * Blink has to go too, or backgrounds 8..15 would flash instead of being
+ * bright -- and the design uses a lifted panel colour as a background. */
+static void load_palette(void)
+{
+    union REGS r;
+    int i;
+
+    for (i = 0; i < 16; i++) {
+        r.x.ax = 0x1000;                  /* attribute i -> DAC entry i */
+        r.h.bl = (unsigned char)i;
+        r.h.bh = (unsigned char)i;
+        int86(0x10, &r, &r);
+    }
+    r.x.ax = 0x1003;                      /* intensity, not blink */
+    r.h.bl = 0;
+    int86(0x10, &r, &r);
+
+    outp(0x3C8, 0);
+    for (i = 0; i < 16; i++) {
+        outp(0x3C9, tui_palette[i][0] >> 2);
+        outp(0x3C9, tui_palette[i][1] >> 2);
+        outp(0x3C9, tui_palette[i][2] >> 2);
+    }
+}
+
 static void set_cursor_shape(int visible)
 {
     union REGS r;
@@ -64,6 +95,7 @@ void tui_init(void)
     r.h.bl = 0;
     int86(0x10, &r, &r);
 
+    load_palette();
     set_cursor_shape(0);
     mouse_init();
     memset(ch_buf, ' ', sizeof(ch_buf));
@@ -137,6 +169,13 @@ int tui_cell(int x, int y)
     if (x < 0 || x >= TUI_W || y < 0 || y >= TUI_H)
         return ' ';
     return ch_buf[y][x];
+}
+
+unsigned char tui_attr(int x, int y)
+{
+    if (x < 0 || x >= TUI_W || y < 0 || y >= TUI_H)
+        return 0;
+    return at_buf[y][x];
 }
 
 void tui_cursor(int x, int y) { cur_x = x; cur_y = y; }

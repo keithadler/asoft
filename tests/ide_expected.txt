@@ -1,45 +1,45 @@
 +--------------------------------------------------------------------------------+
-|  File   Run   Bugs   Debug   Help                                              |
-|╔═══════════════ Apple ][ ═══════════════╗░╔═════════════ Machine ═════════════╗|
-|║APPLESOFT BASIC FOR DOS                 ║░║───────────────────────────────────║|
-|║THE ROM'S BUGS, ON PURPOSE              ║░║TXTTAB   $0801                     ║|
-|║                                        ║░║VARTAB   $081B                     ║|
-|║]10 PRINT "HI"                          ║░║ARYTAB   $081B                     ║|
-|║]20 PRINT "BETA"                        ║░║STREND   $081B                     ║|
-|║]RUN                                    ║░║FRETOP   $9600                     ║|
-|║HI                                      ║░║HIMEM    $9600                     ║|
-|║BETA                                    ║░║FRE(0)   36325                     ║|
-|║]HTAB 10: PRINT POS(0)                  ║░║                                   ║|
-|║11                                      ║░║Control stack      0/240           ║|
-|║]HTAB 10: PRINT POS(0)                  ║░║                                   ║|
-|║9                                       ║░║Bugs active                        ║|
-|║]RUN                                    ║░║  ONERR leak         ON            ║|
-|║HI                                      ║░║  HTAB off-by-two    ON            ║|
-|║EDITED                                  ║░║  MBF rounding       ON            ║|
-|║]HTAB 10: PRINT POS(0)                  ║░║  Greedy tokenizer   ON            ║|
-|║11                                      ║░║                                   ║|
-|║]                                       ║░║Last error   none                  ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|╚════════════════════════════════════════╝░║                                   ║|
-|╔═══════════════ Program ════════════════╗░║                                   ║|
-|║10  PRINT "HI"                          ║░║                                   ║|
-|║20  PRINT "EDITED"                      ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║                                   ║|
-|╚════════════════════════════════════════╝░╚═══════════════════════════════════╝|
+|  File    Run    Bugs    Debug    Help                                          |
+|  asoft   Applesoft BASIC for DOS                                  (no program) |
+|                                                                                |
+| Apple ][  40x24                            Machine                             |
+| APPLESOFT BASIC FOR DOS                    ─────────────────────────────────── |
+| THE ROM'S BUGS, ON PURPOSE                 TXTTAB   $0801                      |
+|                                            VARTAB   $081B                      |
+| ]10 PRINT "HI"                             ARYTAB   $081B                      |
+| ]20 PRINT "BETA"                           STREND   $081B                      |
+| ]RUN                                       FRETOP   $9600                      |
+| HI                                         HIMEM    $9600                      |
+| BETA                                       FRE(0)   36325                      |
+| ]HTAB 10: PRINT POS(0)                                                         |
+| 11                                         Control stack      0/240            |
+| ]HTAB 10: PRINT POS(0)                                                         |
+| 9                                          Bugs active                         |
+| ]RUN                                         ONERR leak         ON             |
+| HI                                           HTAB off-by-two    ON             |
+| EDITED                                       MBF rounding       ON             |
+| ]HTAB 10: PRINT POS(0)                       Greedy tokenizer   ON             |
+| 11                                                                             |
+| ]                                          Last error   none                   |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+| Program  2 lines                                                               |
+| 10  PRINT "HI"                                                                 |
+| 20  PRINT "EDITED"                                                             |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
 | HTAB off-by-two is now ON                                                      |
 +--------------------------------------------------------------------------------+

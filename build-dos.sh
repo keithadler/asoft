@@ -44,7 +44,7 @@ wcl -bcl=dos -ml -q -k16384 -fe=$OUT \
 # The windowed build. Text mode only: it does not wire the graphics display,
 # so HGR still writes page memory but nothing switches the screen over.
 wcl -bcl=dos -ml -q -k16384 -fe=$IDE \
-    $CORE src/tui_dos.c src/ide.c src/main_ide.c
+    $CORE src/tui_dos.c src/tui_palette.c src/ide.c src/main_ide.c
 
 rm -f *.obj src/*.obj 2>/dev/null || true
 ls -l $OUT $IDE
