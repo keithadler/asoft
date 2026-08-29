@@ -69,6 +69,48 @@ static char input[256];
 static int  input_len;
 static int  quitting;
 static int  break_seen;
+
+/* Keys that have been taken from the terminal but not yet used.
+ *
+ * Checking for Ctrl-C means reading whatever is waiting, and everything that
+ * is not Ctrl-C has to be given back rather than dropped -- otherwise a key
+ * pressed while a program is running disappears before GET or a poll of the
+ * keyboard strobe can see it, which is exactly the key a game is waiting
+ * for. One character of pushback is not enough, because a break check can
+ * find several at once. */
+#define KEYQ 32
+static int keyq[KEYQ];
+static int keyq_head, keyq_count;
+
+static void keyq_put(int k)
+{
+    if (keyq_count < KEYQ)
+        keyq[(keyq_head + keyq_count++) % KEYQ] = k;
+}
+
+static int keyq_get(void)
+{
+    int k = keyq[keyq_head];
+    keyq_head = (keyq_head + 1) % KEYQ;
+    keyq_count--;
+    return k;
+}
+
+/* Blocks until there is a key. */
+static int next_key(void)
+{
+    if (keyq_count)
+        return keyq_get();
+    return tui_getkey();
+}
+
+/* Returns 0 rather than waiting. */
+static int next_key_nowait(void)
+{
+    if (keyq_count)
+        return keyq_get();
+    return tui_haskey() ? tui_getkey() : 0;
+}
 static char status[80];
 static char loaded[40];               /* shown in the identity strip */
 
@@ -565,7 +607,7 @@ static int ask(const char *title, const char *prompt, char *buf, int max)
         tui_cursor(x + 3 + len, y + 4);
         tui_flush();
 
-        k = tui_getkey();
+        k = next_key();
         if (k == K_ESC) return 0;
         if (k == K_ENTER) return len > 0;
         if (k == K_BS) { if (len > 0) buf[--len] = '\0'; continue; }
@@ -717,7 +759,7 @@ static void menu_loop(int start)
         tui_flush();
         screen_snapshot();
 
-        k = tui_getkey();
+        k = next_key();
 
         /* A click on an item picks it; on a title, switches to that menu;
          * anywhere else closes, which is what a menu is expected to do. */
@@ -764,7 +806,7 @@ static int pump(int want_line, char *buf, int max)
         tui_flush();
         screen_snapshot();
 
-        k = tui_getkey();
+        k = next_key();
         if (k == 10) k = K_ENTER;      /* a terminal that translated it anyway */
 
         if (k == K_F10) { menu_loop(0); ensure_prompt(); continue; }
@@ -906,21 +948,29 @@ int host_pollkey(void)
 {
     /* The event loop owns the keyboard, so a poll has to go through it. Only
      * ordinary characters reach a program; function keys stay with the IDE. */
-    if (!tui_haskey())
+    int k = next_key_nowait();
+
+    if (k == 0)
         return 0;
-    {
-        int k = tui_getkey();
-        if (k == 3) { break_seen = 1; return 0; }
-        return (k >= 32 && k < 127) ? k : ((k == K_ENTER) ? 13 : 0);
-    }
+    if (k == 3) { break_seen = 1; return 0; }
+    if (k >= 32 && k < 127)
+        return k;
+    if (k == K_ENTER)
+        return 13;
+    return 0;
 }
 
 int host_break(void)
 {
-    /* Poll without blocking, so a long FOR loop can still be interrupted. */
+    /* Poll without blocking, so a long FOR loop can still be interrupted --
+     * and keep anything that is not Ctrl-C, because the running program may
+     * be waiting for exactly that key. */
     while (tui_haskey()) {
         int k = tui_getkey();
-        if (k == 3) break_seen = 1;
+        if (k == 3)
+            break_seen = 1;
+        else
+            keyq_put(k);
     }
     if (break_seen) { break_seen = 0; return 1; }
     return 0;

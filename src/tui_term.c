@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/select.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -208,21 +209,41 @@ static int raw_getc(void)
     return c;
 }
 
+/* Is there input waiting? Asking the terminal driver costs one syscall;
+ * changing the terminal mode to find out costs three, and a program polling
+ * the keyboard in a tight loop -- which is what a game does -- pays that on
+ * every single poll. */
+static int input_ready(long usec)
+{
+    fd_set r;
+    struct timeval tv;
+
+    FD_ZERO(&r);
+    FD_SET(STDIN_FILENO, &r);
+    tv.tv_sec = usec / 1000000L;
+    tv.tv_usec = usec % 1000000L;
+    return select(STDIN_FILENO + 1, &r, 0, 0, &tv) > 0;
+}
+
 int tui_haskey(void)
 {
-    struct termios t, o;
+    return (pending >= 0) || input_ready(0);
+}
+
+/* Wait briefly for the next byte. An escape sequence does not always arrive
+ * in one piece -- over a pty, a pipe, or a slow link the terminal can hand it
+ * over a byte at a time -- and giving up immediately is the difference
+ * between reading F5 and reading Escape followed by "[15~" as ordinary text.
+ * A bare Escape still comes back promptly, because nothing follows it. */
+static int wait_for_byte(long usec)
+{
     int c;
 
     if (pending >= 0)
         return 1;
-    if (tcgetattr(STDIN_FILENO, &o) != 0)
+    if (!input_ready(usec))
         return 0;
-    t = o;
-    t.c_cc[VMIN] = 0;
-    t.c_cc[VTIME] = 0;
-    tcsetattr(STDIN_FILENO, TCSANOW, &t);
     c = raw_getc();
-    tcsetattr(STDIN_FILENO, TCSANOW, &o);
     if (c < 0)
         return 0;
     pending = c;
@@ -235,12 +256,14 @@ static int decode_escape(void)
 {
     int a, b;
 
-    if (!tui_haskey())
+    if (!wait_for_byte(100000L))
         return K_ESC;
     a = pending; pending = -1;
     if (a != '[' && a != 'O')
         return K_ESC;
-    b = raw_getc();
+    if (!wait_for_byte(100000L))
+        return K_ESC;
+    b = pending; pending = -1;
 
     /* ESC [ < button ; col ; row M for a press, m for a release. */
     if (b == '<') {

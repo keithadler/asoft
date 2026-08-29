@@ -25,10 +25,16 @@ NAMED = {
 def keys_from(args):
     """CLICK:x,y sends a left button press at that cell, in the SGR encoding
     the front end asks for. Coordinates are zero-based here and one-based on
-    the wire, like the terminal itself."""
+    the wire, like the terminal itself.
+
+    WAIT:n sends nothing and just reads for n seconds, which is how a test
+    waits for a program that is still running rather than for a keystroke to
+    be answered."""
     out = []
     for a in args:
-        if a.startswith("CLICK:"):
+        if a.startswith("WAIT:"):
+            out.append(("wait", float(a[5:])))
+        elif a.startswith("CLICK:"):
             x, y = (int(v) for v in a[6:].split(","))
             out.append("\x1b[<0;%d;%dM" % (x + 1, y + 1))
         elif a in NAMED:
@@ -37,7 +43,13 @@ def keys_from(args):
             out.append(a.replace("\\e", "\x1b").replace("\\r", "\r").replace("\\t", "\t"))
     return out
 
-def run(argv, keys, settle=0.35):
+def run(argv, keys, settle=None):
+    # How long to wait after each key before sending the next. Escape
+    # sequences arrive in pieces, so a front end that is busy can still be
+    # mid-sequence when the next key lands; tests that drive a running
+    # program raise this.
+    if settle is None:
+        settle = float(os.environ.get("IDEGRAB_SETTLE", "0.35"))
     pid, fd = pty.fork()
     if pid == 0:
         os.environ["TERM"] = "xterm-256color"
@@ -59,6 +71,10 @@ def run(argv, keys, settle=0.35):
         return True
     drain(settle)
     for k in keys:
+        if isinstance(k, tuple):        # ("wait", seconds)
+            if not drain(k[1]):
+                break
+            continue
         os.write(fd, k.encode())
         if not drain(settle):
             break

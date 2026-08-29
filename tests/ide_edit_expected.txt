@@ -1,0 +1,45 @@
++--------------------------------------------------------------------------------+
+|  File    Run    Bugs    Debug    Samples    Help                               |
+|  asoft   Applesoft BASIC for DOS                                  (no program) |
+|                                                                                |
+| Apple ][  40x24                            Machine                             |
+| APPLESOFT BASIC FOR DOS                    ─────────────────────────────────── |
+| THE ROM'S BUGS, ON PURPOSE                 TXTTAB   $0801                      |
+|                                            VARTAB   $081A                      |
+| ]10 PRINT "ONE"                            ARYTAB   $081A                      |
+| ]20 PRINT "TWO"                            STREND   $081A                      |
+| ]30 PRINT "THREE"                          FRETOP   $9600                      |
+| ]RUN                                       HIMEM    $9600                      |
+| ONE                                        FRE(0)   36326                      |
+| EDIT                                                                           |
+| ]                                          Control stack      0/240            |
+|                                                                                |
+|                                            Bugs active                         |
+|                                              ONERR leak         ON             |
+|                                              HTAB off-by-two    ON             |
+|                                              MBF rounding       ON             |
+|                                              Greedy tokenizer   ON             |
+|                                                                                |
+|                                            Last error   none                   |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+| Program  editing                                                               |
+| 10  PRINT "ONE"                                                                |
+| 20  PRINT "EDIT"                                                               |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+|                                                                                |
+| A program line has to start with a line number                                 |
++--------------------------------------------------------------------------------+
