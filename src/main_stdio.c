@@ -55,6 +55,7 @@ int host_getkey(void)
  * DOS the runtime already offers exactly this. */
 #ifdef __DOS__
 #include <conio.h>
+#include <io.h>
 int host_pollkey(void)
 {
     return kbhit() ? getch() : 0;
@@ -80,6 +81,15 @@ int host_pollkey(void)
     return (n == 1) ? c : 0;
 }
 #endif
+
+int host_echoes(void)
+{
+#ifdef __DOS__
+    return isatty(fileno(stdin));
+#else
+    return isatty(STDIN_FILENO);
+#endif
+}
 
 int host_break(void)
 {

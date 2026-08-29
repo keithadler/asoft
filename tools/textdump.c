@@ -50,6 +50,7 @@ static void sink(char ch)
 
 int host_getline(char *b, int m) { (void)b; (void)m; return 0; }
 int host_getkey(void) { return 0; }
+int host_echoes(void) { return 0; }
 int host_pollkey(void) { return 0; }
 int host_break(void) { return 0; }
 

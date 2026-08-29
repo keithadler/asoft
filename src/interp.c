@@ -987,6 +987,12 @@ static void do_input(void)
         running = 0;
         return;
     }
+    /* Put the answer on the screen if nothing else has. Typing at a keyboard
+     * echoes by itself; a file being piped in does not. */
+    if (!host_echoes()) {
+        scr_puts(buf);
+        scr_newline();
+    }
     p = buf;
 
     do {

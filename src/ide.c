@@ -886,6 +886,12 @@ int host_getkey(void)
     return pump(0, 0, 0);
 }
 
+int host_echoes(void)
+{
+    /* The event loop puts every typed character on the Apple screen already. */
+    return 1;
+}
+
 int host_pollkey(void)
 {
     /* The event loop owns the keyboard, so a poll has to go through it. Only
