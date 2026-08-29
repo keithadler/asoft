@@ -96,7 +96,7 @@ int pane_machine(pane_line *out, int max)
         sprintf(buf, "  %s", err_message(it_last_error()));
         n = add(out, max, n, PL_PLAIN, "%s", 0, buf);
         if (it_last_error_line()) {
-            sprintf(buf, "  in line %d", it_last_error_line());
+            sprintf(buf, "  in line %ld", it_last_error_line());
             n = add(out, max, n, PL_PLAIN, "%s", 0, buf);
         }
     }

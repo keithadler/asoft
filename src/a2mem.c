@@ -22,7 +22,11 @@ void a2_setword(a2addr a, a2addr v)
 
 void a2_init(void)
 {
-    memset(a2mem, 0, sizeof(a2mem));
+    /* Cleared in two halves: the image is exactly 64K, and a 16-bit host
+     * truncates a size of 65536 to zero, so a single memset would silently
+     * clear nothing. */
+    memset(a2mem, 0, A2_MEMSIZE / 2);
+    memset(a2mem + A2_MEMSIZE / 2, 0, A2_MEMSIZE / 2);
     a2_setword(ZP_TXTTAB, A2_TXTTAB);
     a2_setword(ZP_MEMSIZ, A2_HIMEM);
     a2_new();
@@ -68,9 +72,9 @@ a2addr a2_prog_next(a2addr line)
     return (nxt && nxt < prog_end()) ? nxt : 0;
 }
 
-int a2_prog_lineno(a2addr line)
+long a2_prog_lineno(a2addr line)
 {
-    return (int)a2_word(line + 2);
+    return (long)a2_word(line + 2);
 }
 
 const unsigned char *a2_prog_tokens(a2addr line)
@@ -78,7 +82,7 @@ const unsigned char *a2_prog_tokens(a2addr line)
     return &a2mem[(line + 4) & 0xFFFF];
 }
 
-a2addr a2_prog_find(int lineno)
+a2addr a2_prog_find(long lineno)
 {
     a2addr p;
     for (p = a2_prog_first(); p; p = a2_prog_next(p))
@@ -87,7 +91,7 @@ a2addr a2_prog_find(int lineno)
     return 0;
 }
 
-a2addr a2_prog_find_ge(int lineno)
+a2addr a2_prog_find_ge(long lineno)
 {
     a2addr p;
     for (p = a2_prog_first(); p; p = a2_prog_next(p))
@@ -113,7 +117,7 @@ static void relink(void)
     a2_setword(end, 0);
 }
 
-void a2_prog_delete(int lineno)
+void a2_prog_delete(long lineno)
 {
     a2addr line = a2_prog_find(lineno);
     a2addr nxt, end, vartab;
@@ -133,7 +137,7 @@ void a2_prog_delete(int lineno)
     a2_clear_vars();
 }
 
-int a2_prog_insert(int lineno, const unsigned char *toks, int len)
+int a2_prog_insert(long lineno, const unsigned char *toks, int len)
 {
     a2addr at, end, vartab;
     int need;

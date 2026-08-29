@@ -17,6 +17,7 @@ static void chk(const char *what, long got, long want)
 
 int main(void)
 {
+    int gy, gc;
     a2_init();
     gfx_reset();
 
@@ -69,6 +70,60 @@ int main(void)
     a2_poke(gfx_text_row(22), 0xC1);
     gfx_gr();
     chk("GR keeps text rows", a2_peek(gfx_text_row(22)), 0xC1);
+
+    /* The DOS display repaints by address, so the interleave has to invert
+     * exactly. Every address that maps to a pixel must come back as the row
+     * and column that produced it, and the layout's holes must be rejected
+     * rather than aliased onto a real row. */
+    {
+        int y, col, seen = 0;
+        for (y = 0; y < 192; y++) {
+            for (col = 0; col < 40; col++) {
+                a2addr a = gfx_hires_row(HIRES_PAGE1, y) + col;
+                int gy, gc;
+                if (!gfx_hires_locate(a, &gy, &gc)) {
+                    printf("  FAIL  hires_locate rejected $%04X (y=%d col=%d)\n",
+                           a, y, col);
+                    failures++;
+                } else if (gy != y || gc != col) {
+                    printf("  FAIL  hires_locate($%04X) = y%d c%d, want y%d c%d\n",
+                           a, gy, gc, y, col);
+                    failures++;
+                } else {
+                    seen++;
+                }
+            }
+        }
+        if (seen != 192 * 40) {
+            printf("  FAIL  only %d of %d hi-res bytes located\n", seen, 192 * 40);
+            failures++;
+        }
+        /* The eight bytes at the end of each group are not on screen. */
+        if (gfx_hires_locate(HIRES_PAGE1 + 0x78, &gy, &gc)) {
+            printf("  FAIL  hires_locate accepted a layout hole\n");
+            failures++;
+        }
+    }
+    {
+        int row, col, seen = 0;
+        for (row = 0; row < 24; row++) {
+            for (col = 0; col < 40; col++) {
+                a2addr a = gfx_text_row(row) + col;
+                int gr, gc;
+                if (!gfx_lores_locate(a, &gr, &gc) || gr != row || gc != col) {
+                    printf("  FAIL  lores_locate($%04X) wrong (row %d col %d)\n",
+                           a, row, col);
+                    failures++;
+                } else {
+                    seen++;
+                }
+            }
+        }
+        if (seen != 24 * 40) {
+            printf("  FAIL  only %d of %d lo-res bytes located\n", seen, 24 * 40);
+            failures++;
+        }
+    }
 
     printf("test_gfx: %s\n", failures ? "FAILED" : "ok");
     return failures ? 1 : 0;

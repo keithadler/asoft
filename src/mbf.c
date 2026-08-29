@@ -184,7 +184,7 @@ void mbf_format(double v, char *buf)
     *p = '\0';
 }
 
-int mbf_parse(const char *s, double *out)
+int mbf_literal_len(const char *s)
 {
     const char *start = s;
     int seen = 0;
@@ -202,13 +202,24 @@ int mbf_parse(const char *s, double *out)
         if (*e == '+' || *e == '-')
             e++;
         /* Only commit to the exponent if a digit actually follows, so "1E"
-         * on its own still parses as 1 rather than swallowing the E. */
+         * on its own stays 1 rather than swallowing the E. */
         if (*e >= '0' && *e <= '9') {
             while (*e >= '0' && *e <= '9')
                 e++;
             s = e;
         }
     }
+    return (int)(s - start);
+}
+
+int mbf_parse(const char *s, double *out)
+{
+    const char *start = s;
+    int n = mbf_literal_len(s);
+
+    if (!n)
+        return 0;
+    s += n;
 
     {
         char tmp[40];

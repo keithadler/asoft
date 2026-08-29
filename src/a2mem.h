@@ -57,14 +57,17 @@ a2addr a2_word(a2addr a);              /* little-endian 16-bit read */
 void   a2_setword(a2addr a, a2addr v);
 
 /* --- program ------------------------------------------------------------ */
+/* Line numbers are long throughout. Applesoft allows up to 63999, which does
+ * not fit in the 16-bit int of the DOS build -- LIST's upper bound of 65535
+ * silently became -1 and listed nothing until this was widened. */
 a2addr a2_prog_first(void);                    /* 0 when empty */
 a2addr a2_prog_next(a2addr line);              /* 0 at end */
-int    a2_prog_lineno(a2addr line);
+long   a2_prog_lineno(a2addr line);
 const unsigned char *a2_prog_tokens(a2addr line);
-a2addr a2_prog_find(int lineno);               /* 0 if absent */
-a2addr a2_prog_find_ge(int lineno);            /* first line >= lineno */
-int    a2_prog_insert(int lineno, const unsigned char *toks, int len);
-void   a2_prog_delete(int lineno);
+a2addr a2_prog_find(long lineno);              /* 0 if absent */
+a2addr a2_prog_find_ge(long lineno);           /* first line >= lineno */
+int    a2_prog_insert(long lineno, const unsigned char *toks, int len);
+void   a2_prog_delete(long lineno);
 
 /* --- variables ---------------------------------------------------------- */
 #define VT_REAL 0

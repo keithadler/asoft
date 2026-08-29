@@ -209,7 +209,7 @@ int main(int argc, char **argv)
         for (; p && row < last; p = a2_prog_next(p), row++) {
             char line[COLS];
             tok_detokenize(a2_prog_tokens(p), buf, (int)sizeof(buf));
-            sprintf(line, "%d %s", a2_prog_lineno(p), buf);
+            sprintf(line, "%ld %s", a2_prog_lineno(p), buf);
             line[COLS - 4] = '\0';
             put(row, 2, line, A_PROG);
         }

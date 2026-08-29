@@ -12,7 +12,21 @@ set -e
 : "${WATCOM:?set WATCOM to the unpacked Open Watcom directory}"
 export WATCOM
 export INCLUDE="$WATCOM/h"
-export PATH="$WATCOM/binl64:$WATCOM/binl:$PATH"
+
+# The snapshot ships host binaries for several platforms in parallel
+# directories; pick the one that will actually run here. armo64 is Apple
+# silicon, bino64 Intel Macs, binl64 Linux.
+case "$(uname -s)-$(uname -m)" in
+    Darwin-arm64)  HOSTBIN=armo64 ;;
+    Darwin-x86_64) HOSTBIN=bino64 ;;
+    Linux-*)       HOSTBIN=binl64 ;;
+    *)             HOSTBIN=binl64 ;;
+esac
+test -x "$WATCOM/$HOSTBIN/wcl" || {
+    echo "no wcl in $WATCOM/$HOSTBIN - is WATCOM pointing at the unpacked snapshot?" >&2
+    exit 1
+}
+export PATH="$WATCOM/$HOSTBIN:$WATCOM/binl:$PATH"
 
 OUT=web/bundle/ASOFT.EXE
 mkdir -p web/bundle
@@ -21,7 +35,8 @@ mkdir -p web/bundle
 # -k16384   16K stack; the recursive-descent evaluator wants more than the 4K default
 wcl -bcl=dos -ml -q -k16384 -fe=$OUT \
     src/mbf.c src/token.c src/a2mem.c src/errs.c src/bugs.c src/gfx.c \
-    src/screen.c src/panes.c src/interp.c src/main_stdio.c
+    src/hires.c src/display_dos.c src/screen.c src/panes.c src/interp.c \
+    src/main_stdio.c
 
 rm -f *.obj src/*.obj 2>/dev/null || true
 ls -l $OUT

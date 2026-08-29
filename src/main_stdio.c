@@ -6,6 +6,8 @@
  * Turbo Vision; only the destination differs.
  */
 #include "bugs.h"
+#include "display.h"
+#include "gfx.h"
 #include "host.h"
 #include "interp.h"
 #include "screen.h"
@@ -15,6 +17,11 @@
 
 static void sink(char ch)
 {
+    /* While hi-res is up the Apple showed the graphics page, so anything
+     * printed went somewhere you could not see. The DOS build honours that;
+     * the terminal build does not, because it has only one screen. */
+    if (disp_suppress_text())
+        return;
     if (ch == '\f') {
         /* HOME. A dumb terminal gets a few blank lines rather than an
          * escape sequence that may not be understood. */
@@ -53,18 +60,23 @@ int host_break(void)
 static void usage(const char *argv0)
 {
     fprintf(stderr,
-            "usage: %s [-n] [program.bas]\n"
-            "  -n   disable the deliberate ROM bugs\n", argv0);
+            "usage: %s [-n] [-r] [program.bas]\n"
+            "  -n   disable the deliberate ROM bugs\n"
+            "  -r   run the program straight away, without waiting for RUN\n",
+            argv0);
 }
 
 int main(int argc, char **argv)
 {
     char line[512];
     const char *path = 0;
+    int autorun = 0;
     int i;
 
     for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-n") == 0) {
+        if (strcmp(argv[i], "-r") == 0) {
+            autorun = 1;
+        } else if (strcmp(argv[i], "-n") == 0) {
             int b;
             for (b = 0; b < BUG_COUNT; b++)
                 bug_enabled[b] = 0;
@@ -78,20 +90,30 @@ int main(int argc, char **argv)
 
     scr_init(sink);
     it_init();
+    disp_init();
+    gfx_on_change(disp_touch);
 
     if (path && !it_load(path)) {
         fprintf(stderr, "cannot open %s\n", path);
         return 1;
     }
+    if (autorun)
+        it_line("RUN");
 
     for (;;) {
-        scr_raw_puts("]");
-        fflush(stdout);
+        /* Repaint before prompting, so a program that drew something is
+         * showing it while you decide what to type next. */
+        disp_refresh();
+        if (!disp_suppress_text()) {
+            scr_raw_puts("]");
+            fflush(stdout);
+        }
         if (!host_getline(line, (int)sizeof(line)))
             break;
         it_line(line);
         if (it_quitting())
             break;
     }
+    disp_shutdown();
     return 0;
 }

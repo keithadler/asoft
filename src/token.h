@@ -49,4 +49,9 @@ int tok_tokenize(const char *src, unsigned char *out, int outmax, int greedy);
 /* Expand tokens back to text the way LIST does. Returns bytes written. */
 int tok_detokenize(const unsigned char *toks, char *out, int outmax);
 
+/* The same, but in a form that tokenizes back to identical bytes. LIST prints
+ * "DATA  11" for a line typed as "DATA 11", so saving the LIST form and
+ * loading it again would gain a space every time; SAVE uses this instead. */
+int tok_detokenize_src(const unsigned char *toks, char *out, int outmax);
+
 #endif

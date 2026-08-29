@@ -60,4 +60,10 @@ void mbf_format(double v, char *buf);
  * parsed as subtraction, so it prints -4. The ROM accepts it, so we do too. */
 int mbf_parse(const char *s, double *out);
 
+/* Length of the numeric literal at s, 0 if there is not one. The tokenizer
+ * uses this to copy numbers through verbatim: without it the "-" of 1E-5
+ * becomes a minus token before the number is ever parsed, and the expression
+ * evaluates as 1 - 5. That is exactly what the reference build prints. */
+int mbf_literal_len(const char *s);
+
 #endif

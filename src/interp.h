@@ -32,8 +32,8 @@ int  it_cstack_count(void);
 int  it_frame_info(int i, int *kind, char *label, long *value);
 int  it_leaked_frames(void);
 int  it_last_error(void);           /* ERR_NONE when there has not been one */
-int  it_last_error_line(void);
-int  it_current_line(void);
+long it_last_error_line(void);
+long it_current_line(void);
 
 /* --- program files ------------------------------------------------------ */
 /* Both return 0 on failure. The reference console build has neither; the

@@ -1,4 +1,5 @@
 #include "token.h"
+#include "mbf.h"
 
 #include <string.h>
 #include <ctype.h>
@@ -64,7 +65,24 @@ int tok_tokenize(const char *src, unsigned char *out, int outmax, int greedy)
 
         if (*src == ' ') {           /* spaces outside strings are dropped */
             src++;
+            /* A space breaks an identifier even though it is not stored, so
+             * non-greedy mode still sees TO in "1 TO 10" as a keyword while
+             * refusing the TO buried in TOTAL. */
+            prev_ident = 0;
             continue;
+        }
+
+        {
+            /* Numeric literals go through untouched. Scanning them here is
+             * what makes 1E-5 work: leave it to the keyword matcher and the
+             * "-" becomes a minus token, so the expression reads 1 - 5. */
+            int nlen = mbf_literal_len(src);
+            if (nlen) {
+                while (nlen--)
+                    EMIT(*src++);
+                prev_ident = 1;
+                continue;
+            }
         }
 
         if (*src == '"') {           /* string literal: copy verbatim */
@@ -95,8 +113,11 @@ int tok_tokenize(const char *src, unsigned char *out, int outmax, int greedy)
                     matched = 1;
                     prev_ident = 0;
 
-                    if (t == T_REM) {
-                        /* REM keeps everything to the end of the line. */
+                    if (t == T_REM || t == T_LOAD || t == T_SAVE) {
+                        /* REM keeps everything to the end of the line, and so
+                         * do LOAD and SAVE: their argument is a DOS path, and
+                         * tokenizing it would turn the slashes into division
+                         * and eat keywords out of the directory names. */
                         while (*src)
                             EMIT(*src++);
                     } else if (t == T_DATA) {
@@ -133,7 +154,12 @@ int tok_tokenize(const char *src, unsigned char *out, int outmax, int greedy)
 #undef EMIT
 }
 
-int tok_detokenize(const unsigned char *toks, char *out, int outmax)
+/* Shared by both expanders. src_form drops the space a verbatim-tail keyword
+ * would otherwise print, because that tail already begins with the space the
+ * user typed: LIST shows "DATA  11" for a line entered as "DATA 11", so
+ * writing the LIST form to a file and reading it back would gain a space on
+ * every round trip. SAVE therefore writes the source form. */
+static int expand(const unsigned char *toks, char *out, int outmax, int src_form)
 {
     int n = 0;
 
@@ -142,13 +168,16 @@ int tok_detokenize(const unsigned char *toks, char *out, int outmax)
     while (*toks) {
         const char *k = tok_name(*toks);
         if (k) {
+            int verbatim = (*toks == T_REM || *toks == T_DATA ||
+                            *toks == T_LOAD || *toks == T_SAVE);
             /* " KEYWORD " - the space on each side is what makes LIST output
              * look the way it does. */
             PUT(' ');
             while (*k)
                 PUT(*k++);
-            PUT(' ');
-            if (*toks == T_REM || *toks == T_DATA) {
+            if (!(src_form && verbatim))
+                PUT(' ');
+            if (verbatim) {
                 /* Tail was stored verbatim; copy it out the same way. */
                 toks++;
                 while (*toks && !tok_name(*toks))
@@ -170,4 +199,14 @@ int tok_detokenize(const unsigned char *toks, char *out, int outmax)
     return n;
 
 #undef PUT
+}
+
+int tok_detokenize(const unsigned char *toks, char *out, int outmax)
+{
+    return expand(toks, out, outmax, 0);
+}
+
+int tok_detokenize_src(const unsigned char *toks, char *out, int outmax)
+{
+    return expand(toks, out, outmax, 1);
 }

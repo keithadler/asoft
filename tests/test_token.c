@@ -84,6 +84,55 @@ int main(void)
         }
     }
 
+    /* A number keeps its signed exponent: leave it to the keyword matcher
+     * and 1E-5 becomes 1 - 5, which is what the reference prints. */
+    chk("PRINT 1E-5", " PRINT 1E-5");
+    chk("PRINT 2E+3;1.5E-10", " PRINT 2E+3;1.5E-10");
+    chk("PRINT 1E", " PRINT 1E");          /* bare E is a variable, not an exponent */
+
+    /* LOAD and SAVE keep their tail, so a DOS path survives tokenizing. */
+    chk("LOAD web/bundle/TESTS.BAS", " LOAD  web/bundle/TESTS.BAS");
+    chk("SAVE C:\\PROGS\\A.BAS", " SAVE  C:\\PROGS\\A.BAS");
+
+    /* Non-greedy mode must still see keywords that follow a number or a
+     * symbol, and only refuse the ones welded into an identifier. */
+    {
+        unsigned char toks[128];
+        char out[256];
+        tok_tokenize("FOR I = 1 TO 10", toks, (int)sizeof(toks), 0);
+        tok_detokenize(toks, out, (int)sizeof(out));
+        if (strcmp(out, " FOR I = 1 TO 10") != 0) {
+            printf("  FAIL  non-greedy FOR want [ FOR I = 1 TO 10] got [%s]\n", out);
+            failures++;
+        }
+    }
+
+    /* SAVE writes a form that LOAD turns back into identical tokens, so a
+     * round trip does not keep adding spaces to REM and DATA tails. */
+    {
+        static const char *lines[] = {
+            "REM APPLESOFT COMPATIBILITY CHECKS",
+            "DATA 11,22,HELLO",
+            "PRINT \"HI\": REM TRAILING",
+            "X = 1: FOR I = 1 TO 3: NEXT",
+            0
+        };
+        int i;
+        for (i = 0; lines[i]; i++) {
+            unsigned char a[512], b[512];
+            char src[512];
+            int na = tok_tokenize(lines[i], a, (int)sizeof(a), 1);
+            int nb;
+            tok_detokenize_src(a, src, (int)sizeof(src));
+            nb = tok_tokenize(src, b, (int)sizeof(b), 1);
+            if (na != nb || memcmp(a, b, (size_t)na) != 0) {
+                printf("  FAIL  save/load round trip: %s\n        via [%s]\n",
+                       lines[i], src);
+                failures++;
+            }
+        }
+    }
+
     printf("test_token: %s\n", failures ? "FAILED" : "ok");
     return failures ? 1 : 0;
 }

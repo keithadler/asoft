@@ -33,6 +33,20 @@
 #define HIRES_PAGE1 0x2000
 #define HIRES_PAGE2 0x4000
 
+/* The display registers here so it can follow plotting without rescanning
+ * the page. The argument is the byte that changed, or 0 for "everything". */
+typedef void (*gfx_hook)(a2addr changed);
+void   gfx_on_change(gfx_hook h);
+
+a2addr gfx_hpage(void);       /* base of the page HPLOT is drawing on */
+
+/* Undo the interleave: which scan line and which byte of it does this address
+ * hold? Returns 0 for an address off the page, or in one of the eight-byte
+ * holes the layout leaves at the end of every group of rows. A display uses
+ * these to repaint just what changed. */
+int gfx_hires_locate(a2addr a, int *y, int *col);
+int gfx_lores_locate(a2addr a, int *row, int *col);
+
 void   gfx_reset(void);
 int    gfx_mode(void);
 
@@ -48,6 +62,13 @@ void gfx_text(void);
 
 void gfx_color(int c);        /* COLOR= 0..15 */
 void gfx_hcolor(int c);       /* HCOLOR= 0..7 */
+
+/* Palette indices the rasterizer and the display agree on: 0..15 are the
+ * lo-res colours, 16..21 the six hi-res ones. */
+#define PAL_LORES 0
+#define PAL_HIRES 16
+#define PAL_SIZE  22
+extern const unsigned char gfx_palette[PAL_SIZE][3];   /* r, g, b */
 int  gfx_get_color(void);
 int  gfx_get_hcolor(void);
 

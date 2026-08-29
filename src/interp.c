@@ -45,15 +45,15 @@ static unsigned char imm[512];    /* tokenised immediate-mode line */
 
 static int   running;
 static int   quitting;
-static int   stopped_line;        /* where STOP left off, for CONT */
+static long  stopped_line;        /* where STOP left off, for CONT */
 static int   stopped_offset;
 
 static a2addr data_line;
 static int    data_offset;
 
-static int   onerr_line;
+static long  onerr_line;
 static int   last_error = ERR_NONE;
-static int   last_error_line;
+static long  last_error_line;
 
 static jmp_buf err_jmp;
 
@@ -174,6 +174,16 @@ static int read_name(char *name, int *type)
 
 static void eval(value *out);
 
+/* Non-zero while ip is walking a stored program line, as opposed to the
+ * immediate-mode buffer or a copied DEF FN body. Both of those live outside
+ * the memory image, so string literals in them have to be copied. */
+static int fn_depth;
+
+static int in_image(void)
+{
+    return cur_line != 0 && fn_depth == 0;
+}
+
 /* Locate the slot a variable reference at ip designates, creating it if
  * asked. Handles both scalars and array elements. */
 static a2addr lvalue(int *type)
@@ -268,21 +278,31 @@ static void primary(value *out)
     if (*ip == '"') {
         /* A literal in program text is not copied: the descriptor points at
          * the program itself, which is why A$ = "HELLO" costs no string
-         * space. The reference build does the same. */
+         * space. The reference build does the same, and it is why assigning a
+         * literal shows up as 0 bytes of string space.
+         *
+         * The address is worked out from the line's own address rather than
+         * by subtracting pointers into a2mem. The image is exactly 64K, so on
+         * a 16-bit host that subtraction would overflow ptrdiff_t for
+         * anything above 32K. */
         const unsigned char *start = ++ip;
         int len = 0;
         while (ip[len] && ip[len] != '"')
             len++;
         out->is_str = 1;
         out->str.len = (unsigned char)len;
-        out->str.addr = (a2addr)(start - a2mem);
+        if (in_image()) {
+            out->str.addr = (a2addr)(cur_line + 4 +
+                                     (a2addr)(start - a2_prog_tokens(cur_line)));
+        } else {
+            /* An immediate-mode line or a DEF FN body lives outside the
+             * image, so the text has to be copied somewhere a descriptor can
+             * point at. */
+            out->str = str_make((const char *)start, len);
+        }
         ip += len;
         if (*ip == '"')
             ip++;
-        /* An immediate-mode line lives outside the image, so it has to be
-         * copied to somewhere the descriptor can point at. */
-        if (start < a2mem || start >= a2mem + A2_MEMSIZE)
-            out->str = str_make((const char *)start, len);
         return;
     }
 
@@ -691,7 +711,9 @@ static void call_user_fn(value *out)
 
     saved_ip = ip;
     ip = fns[i].body;
+    fn_depth++;
     eval(out);
+    fn_depth--;
     ip = saved_ip;
 
     memcpy(&a2mem[slot], saved.b, MBF_SIZE);
@@ -854,9 +876,9 @@ static void exec_line(void)
     }
 }
 
-static int read_lineno(void)
+static long read_lineno(void)
 {
-    int n = 0;
+    long n = 0;
     if (!isdigit((unsigned char)*ip))
         raise_err(ERR_SYNTAX);
     while (isdigit((unsigned char)*ip))
@@ -864,7 +886,7 @@ static int read_lineno(void)
     return n;
 }
 
-static void goto_line(int n)
+static void goto_line(long n)
 {
     a2addr l = a2_prog_find(n);
     if (!l)
@@ -1058,7 +1080,7 @@ static void do_next(void)
 
 static void do_list(void)
 {
-    int from = 0, to = 65535;
+    long from = 0, to = 63999;   /* Applesoft's highest line number */
     a2addr p;
     char buf[512];
 
@@ -1067,16 +1089,16 @@ static void do_list(void)
         to = from;
     }
     if (eat(T_MINUS) || eat(',')) {
-        to = isdigit((unsigned char)*ip) ? read_lineno() : 65535;
+        to = isdigit((unsigned char)*ip) ? read_lineno() : 63999;
         if (!from)
             from = 0;
     }
 
     for (p = a2_prog_first(); p; p = a2_prog_next(p)) {
-        int n = a2_prog_lineno(p);
+        long n = a2_prog_lineno(p);
         if (n < from || n > to)
             continue;
-        sprintf(buf, "%d", n);
+        sprintf(buf, "%ld", n);
         scr_puts(buf);
         scr_putc(' ');
         tok_detokenize(a2_prog_tokens(p), buf, (int)sizeof(buf));
@@ -1201,7 +1223,7 @@ static void exec_statement(void)
     case T_STOP: {
         char buf[32];
         scr_newline();
-        sprintf(buf, "BREAK IN %d", cur_line ? a2_prog_lineno(cur_line) : 0);
+        sprintf(buf, "BREAK IN %ld", cur_line ? a2_prog_lineno(cur_line) : 0L);
         scr_puts(buf);
         scr_newline();
         stopped_line = cur_line ? a2_prog_lineno(cur_line) : 0;
@@ -1214,7 +1236,7 @@ static void exec_statement(void)
     case T_GOTO:    goto_line(read_lineno()); return;
 
     case T_GOSUB: {
-        int target = read_lineno();
+        long target = read_lineno();
         push_frame(FRAME_GOSUB, SZ_GOSUB);
         cstack[ncstack - 1].line = cur_line;
         cstack[ncstack - 1].offset =
@@ -1285,11 +1307,12 @@ static void exec_statement(void)
         double sel = need_num();
         int n = (int)sel;
         int gosub = 0;
-        int i = 1, target = 0;
+        long target = 0;
+        int i = 1;
         if (eat(T_GOSUB)) gosub = 1;
         else expect(T_GOTO);
         for (;;) {
-            int l = read_lineno();
+            long l = read_lineno();
             if (i == n)
                 target = l;
             i++;
@@ -1504,7 +1527,9 @@ static void exec_statement(void)
         int n = 0;
         while (*ip == ' ')
             ip++;
-        while (*ip && *ip != ':' && n < (int)sizeof(path) - 1)
+        /* The tokenizer kept this tail verbatim, so take all of it: a DOS
+         * path may contain a colon, and none of it is tokenised. */
+        while (*ip && n < (int)sizeof(path) - 1)
             path[n++] = (char)*ip++;
         while (n > 0 && path[n - 1] == ' ')
             n--;
@@ -1517,13 +1542,13 @@ static void exec_statement(void)
     }
 
     case T_DEL: {
-        int from = read_lineno(), to = from;
+        long from = read_lineno(), to = from;
         if (eat(T_MINUS) || eat(','))
             to = read_lineno();
         {
             a2addr p = a2_prog_first();
             while (p) {
-                int n = a2_prog_lineno(p);
+                long n = a2_prog_lineno(p);
                 a2addr nxt = a2_prog_next(p);
                 if (n >= from && n <= to)
                     a2_prog_delete(n);
@@ -1551,7 +1576,7 @@ static void report_error(int code)
      * of its own and a failure mid-program prints a blank line first. */
     scr_newline();
     if (running && cur_line)
-        sprintf(buf, "?%s IN %d", err_message(code), a2_prog_lineno(cur_line));
+        sprintf(buf, "?%s IN %ld", err_message(code), a2_prog_lineno(cur_line));
     else
         sprintf(buf, "?%s", err_message(code));
     scr_puts(buf);
@@ -1562,7 +1587,7 @@ static void report_error(int code)
 static int handle_error(int code)
 {
     last_error = code;
-    last_error_line = cur_line ? a2_prog_lineno(cur_line) : 0;
+    last_error_line = cur_line ? a2_prog_lineno(cur_line) : 0L;
     a2_poke(ZP_ERRNUM, (unsigned char)code);
     a2_setword(ZP_ERRLIN, (a2addr)last_error_line);
 
@@ -1647,7 +1672,7 @@ void it_line(const char *src)
             scr_newline();
             return;
         }
-        if (!a2_prog_insert((int)n, toks, len)) {
+        if (!a2_prog_insert(n, toks, len)) {
             scr_newline();
             scr_puts("?OUT OF MEMORY");
             scr_newline();
@@ -1685,7 +1710,7 @@ void it_line(const char *src)
                 if (host_break()) {
                     char buf[32];
                     scr_newline();
-                    sprintf(buf, "BREAK IN %d", a2_prog_lineno(cur_line));
+                    sprintf(buf, "BREAK IN %ld", a2_prog_lineno(cur_line));
                     scr_puts(buf);
                     scr_newline();
                     stopped_line = a2_prog_lineno(cur_line);
@@ -1711,8 +1736,8 @@ int it_cstack_used(void)  { return cstack_bytes; }
 int it_cstack_count(void) { return ncstack; }
 int it_leaked_frames(void) { return leaked; }
 int it_last_error(void)   { return last_error; }
-int it_last_error_line(void) { return last_error_line; }
-int it_current_line(void) { return cur_line ? a2_prog_lineno(cur_line) : 0; }
+long it_last_error_line(void) { return last_error_line; }
+long it_current_line(void) { return cur_line ? a2_prog_lineno(cur_line) : 0L; }
 
 int it_frame_info(int i, int *kind, char *label, long *value)
 {
@@ -1736,7 +1761,7 @@ int it_frame_info(int i, int *kind, char *label, long *value)
     }
     case FRAME_GOSUB:
         strcpy(label, "");
-        *value = cstack[i].line ? a2_prog_lineno(cstack[i].line) : 0;
+        *value = cstack[i].line ? a2_prog_lineno(cstack[i].line) : 0L;
         return 1;
     default:
         strcpy(label, "leaked");
@@ -1776,7 +1801,7 @@ int it_load(const char *path)
                            bug_enabled[BUG_GREEDY_TOKENIZER]);
         if (len < 0)
             continue;
-        if (!a2_prog_insert((int)n, toks, len)) {
+        if (!a2_prog_insert(n, toks, len)) {
             fclose(f);
             return 0;
         }
@@ -1794,8 +1819,9 @@ int it_save(const char *path)
     if (!f)
         return 0;
     for (p = a2_prog_first(); p; p = a2_prog_next(p)) {
-        tok_detokenize(a2_prog_tokens(p), buf, (int)sizeof(buf));
-        fprintf(f, "%d %s\n", a2_prog_lineno(p), buf);
+        /* Source form, so LOAD reproduces the same tokens byte for byte. */
+        tok_detokenize_src(a2_prog_tokens(p), buf, (int)sizeof(buf));
+        fprintf(f, "%ld %s\n", a2_prog_lineno(p), buf);
     }
     fclose(f);
     return 1;
