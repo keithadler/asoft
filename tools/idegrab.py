@@ -19,6 +19,7 @@ NAMED = {
     "UP": "\x1b[A", "DOWN": "\x1b[B", "RIGHT": "\x1b[C", "LEFT": "\x1b[D",
     "PGUP": "\x1b[5~", "PGDN": "\x1b[6~",
     "ENTER": "\r", "ESC": "\x1b", "BS": "\x7f", "CTRLQ": "\x11", "CTRLC": "\x03",
+    "TAB": "\t", "F8": "\x1b[19~", "DEL": "\x1b[3~", "HOME": "\x1b[H", "END": "\x1b[F",
 }
 
 def keys_from(args):

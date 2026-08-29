@@ -55,6 +55,7 @@
 #define A_HOT    ATTR(C_RED, C_LTGRAY)
 #define A_SEL    ATTR(C_WHITE, C_GREEN)
 #define A_MENU   ATTR(C_BLACK, C_LTGRAY)
+#define A_EDIT   ATTR(C_WHITE, C_BLACK)
 
 static char cells[APPLE_H][APPLE_W];
 static int  arow, acol;               /* where output has reached */
@@ -63,7 +64,28 @@ static char input[256];
 static int  input_len;
 static int  quitting;
 static int  break_seen;
-static char status[80] = "F5 Run   F9 List   F3 Load   F2 Save   F10 Menu   Ctrl-Q Quit";
+static char status[80];
+
+/* Which pane the keyboard is talking to. The prompt is the Apple as it was:
+ * type a numbered line and it is stored. The editor is what an IDE is for --
+ * move around the listing and change it in place. Tab swaps between them. */
+#define FOCUS_TERM 0
+#define FOCUS_EDIT 1
+static int  focus = FOCUS_TERM;
+
+/* The editor works one line at a time: the line under the cursor is
+ * detokenized into ed_buf, edited there, and handed back to the interpreter
+ * as though it had been typed. That keeps a single path into the program --
+ * it_line stores it, exactly as the prompt does -- so there is no second
+ * implementation of what a line means. */
+static int  ed_row, ed_col;
+static char ed_buf[256];
+static int  ed_dirty;
+
+static const char *status_term =
+    "TAB Edit   F5 Run   F9 List   F3 Load   F2 Save   F10 Menu   Ctrl-Q Quit";
+static const char *status_edit =
+    "TAB Prompt   F5 Run   F8 Delete line   F10 Menu   Ctrl-Q Quit";
 
 /* ------------------------------------------------------------ apple screen */
 
@@ -102,6 +124,135 @@ void ide_sink(char ch)
     if (acol >= APPLE_W)
         apple_newline();
     cells[arow][acol++] = ch;
+}
+
+/* ------------------------------------------------------------------ editor */
+
+static int prog_count(void)
+{
+    a2addr p = a2_prog_first();
+    int n = 0;
+    while (p) { n++; p = a2_prog_next(p); }
+    return n;
+}
+
+static a2addr prog_at(int i)
+{
+    a2addr p = a2_prog_first();
+    while (i-- > 0 && p)
+        p = a2_prog_next(p);
+    return p;
+}
+
+/* "10 PRINT ..." as the listing shows it. */
+static void prog_text(int i, char *out, int max)
+{
+    char body[512];
+    a2addr p = prog_at(i);
+
+    out[0] = '\0';
+    if (!p)
+        return;
+    tok_detokenize(a2_prog_tokens(p), body, (int)sizeof(body));
+    sprintf(out, "%ld %s", a2_prog_lineno(p), body);
+    out[max - 1] = '\0';
+}
+
+static void ed_load(void)
+{
+    prog_text(ed_row, ed_buf, (int)sizeof(ed_buf));
+    ed_dirty = 0;
+    if (ed_col > (int)strlen(ed_buf))
+        ed_col = (int)strlen(ed_buf);
+}
+
+/* Hand the edited line back. Storing a line can move every line after it, so
+ * the caller re-finds its place afterwards. */
+static void ed_commit(void)
+{
+    if (!ed_dirty)
+        return;
+    ed_dirty = 0;
+    if (ed_buf[0])
+        it_line(ed_buf);
+}
+
+/* Keep the cursor's line on screen. */
+static void ed_scroll_into_view(void)
+{
+    if (ed_row < prog_top)
+        prog_top = ed_row;
+    if (ed_row >= prog_top + PROG_LINES)
+        prog_top = ed_row - PROG_LINES + 1;
+    if (prog_top < 0)
+        prog_top = 0;
+}
+
+static void ed_move(int delta)
+{
+    int n;
+    ed_commit();
+    n = prog_count();
+    ed_row += delta;
+    if (ed_row < 0) ed_row = 0;
+    if (ed_row > n) ed_row = n;      /* one past the end: a new line */
+    ed_load();
+    ed_scroll_into_view();
+}
+
+/* Applesoft deletes a line by giving its number alone. */
+static void ed_delete_line(void)
+{
+    a2addr p = prog_at(ed_row);
+    char num[32];
+
+    if (!p)
+        return;
+    sprintf(num, "%ld", a2_prog_lineno(p));
+    ed_dirty = 0;
+    it_line(num);
+    if (ed_row > prog_count())
+        ed_row = prog_count();
+    ed_load();
+    ed_scroll_into_view();
+}
+
+static void ed_insert(int ch)
+{
+    int len = (int)strlen(ed_buf);
+    int i;
+
+    if (len >= (int)sizeof(ed_buf) - 1)
+        return;
+    for (i = len; i >= ed_col; i--)
+        ed_buf[i + 1] = ed_buf[i];
+    ed_buf[ed_col++] = (char)ch;
+    ed_dirty = 1;
+}
+
+static void ed_backspace(void)
+{
+    int len = (int)strlen(ed_buf);
+    int i;
+
+    if (ed_col <= 0)
+        return;
+    for (i = ed_col - 1; i < len; i++)
+        ed_buf[i] = ed_buf[i + 1];
+    ed_col--;
+    ed_dirty = 1;
+}
+
+static void ed_del(void)
+{
+    int len = (int)strlen(ed_buf);
+    int i;
+
+    if (ed_col >= len)
+        return;
+    for (i = ed_col; i < len; i++)
+        ed_buf[i] = ed_buf[i + 1];
+    ed_dirty = 1;
 }
 
 /* ------------------------------------------------------------------ menus */
@@ -177,24 +328,36 @@ static void draw_apple(void)
 
 static void draw_program(void)
 {
-    char text[512], line[300];
-    a2addr p = a2_prog_first();
-    int skip, y;
+    char line[300];
+    int n = prog_count();
+    int y;
 
-    tui_box(PROG_X, PROG_Y, PROG_BW, PROG_BH, "Program", A_FRAME);
-    for (skip = 0; skip < prog_top && p; skip++)
-        p = a2_prog_next(p);
+    tui_box(PROG_X, PROG_Y, PROG_BW, PROG_BH,
+            (focus == FOCUS_EDIT) ? "Program - editing" : "Program", A_FRAME);
+
     for (y = 0; y < PROG_LINES; y++) {
+        int row = prog_top + y;
+        unsigned char a = A_PLAIN;
         int i;
+
         for (i = 0; i < PROG_BW - 2; i++)
             tui_put(PROG_X + 1 + i, PROG_Y + 1 + y, ' ', A_PLAIN);
-        if (p) {
-            tok_detokenize(a2_prog_tokens(p), text, (int)sizeof(text));
-            sprintf(line, "%ld %s", a2_prog_lineno(p), text);
-            line[PROG_BW - 3] = '\0';
-            tui_puts(PROG_X + 1, PROG_Y + 1 + y, line, A_PLAIN);
-            p = a2_prog_next(p);
+        if (row > n)
+            continue;
+
+        if (focus == FOCUS_EDIT && row == ed_row) {
+            strncpy(line, ed_buf, sizeof(line) - 1);
+            line[sizeof(line) - 1] = '\0';
+            a = A_EDIT;
+            for (i = 0; i < PROG_BW - 2; i++)
+                tui_put(PROG_X + 1 + i, PROG_Y + 1 + y, ' ', a);
+        } else if (row < n) {
+            prog_text(row, line, (int)sizeof(line));
+        } else {
+            continue;
         }
+        line[PROG_BW - 3] = '\0';
+        tui_puts(PROG_X + 1, PROG_Y + 1 + y, line, a);
     }
 }
 
@@ -225,8 +388,10 @@ static void draw_machine(void)
 
 static void draw_status(void)
 {
+    const char *text = status[0] ? status
+                     : (focus == FOCUS_EDIT ? status_edit : status_term);
     tui_fill(0, STATUS_Y, TUI_W, 1, ' ', A_BAR);
-    tui_puts(1, STATUS_Y, status, A_BAR);
+    tui_puts(1, STATUS_Y, text, A_BAR);
 }
 
 static void draw_all(int active_menu)
@@ -242,7 +407,15 @@ static void draw_all(int active_menu)
 /* Put the caret after the prompt, on the row output has reached. */
 static void place_cursor(void)
 {
-    int col = acol + input_len;
+    int col;
+
+    if (focus == FOCUS_EDIT) {
+        col = ed_col;
+        if (col > PROG_BW - 3) col = PROG_BW - 3;
+        tui_cursor(PROG_X + 1 + col, PROG_Y + 1 + (ed_row - prog_top));
+        return;
+    }
+    col = acol + input_len;
     if (col > APPLE_W - 1) col = APPLE_W - 1;
     tui_cursor(APPLE_X + 1 + col, APPLE_Y + 1 + arow);
 }
@@ -253,6 +426,8 @@ static void place_cursor(void)
 static void overlay_input(void)
 {
     int i;
+    if (focus != FOCUS_TERM)
+        return;
     for (i = 0; i < input_len && acol + i < APPLE_W; i++)
         tui_put(APPLE_X + 1 + acol + i, APPLE_Y + 1 + arow, input[i], A_APPLE);
 }
@@ -432,6 +607,7 @@ static int pump(int want_line, char *buf, int max)
         tui_flush();
 
         k = tui_getkey();
+        if (k == 10) k = K_ENTER;      /* a terminal that translated it anyway */
 
         if (k == K_F10) { menu_loop(); ensure_prompt(); continue; }
         if (k == 17) { quitting = 1; return 0; }            /* Ctrl-Q */
@@ -440,10 +616,53 @@ static int pump(int want_line, char *buf, int max)
         if (k == K_F9) { run_line("LIST"); ensure_prompt(); continue; }
         if (k == K_F3) { do_load(); ensure_prompt(); continue; }
         if (k == K_F2) { do_save(); ensure_prompt(); continue; }
+        /* Tab moves the keyboard between the prompt and the listing. Leaving
+         * the editor hands whatever was being typed back to the interpreter,
+         * so a half-finished edit is not silently lost. */
+        if (k == K_TAB) {
+            status[0] = '\0';
+            if (focus == FOCUS_EDIT) {
+                ed_commit();
+                focus = FOCUS_TERM;
+            } else {
+                focus = FOCUS_EDIT;
+                if (ed_row > prog_count())
+                    ed_row = prog_count();
+                ed_col = 0;
+                ed_load();
+                ed_scroll_into_view();
+            }
+            continue;
+        }
+
+        if (focus == FOCUS_EDIT) {
+            int len;
+            switch (k) {
+            case K_UP:    ed_move(-1); break;
+            case K_DOWN:  ed_move(1); break;
+            case K_ENTER: ed_move(1); break;
+            case K_PGUP:  ed_move(-PROG_LINES); break;
+            case K_PGDN:  ed_move(PROG_LINES); break;
+            case K_LEFT:  if (ed_col > 0) ed_col--; break;
+            case K_HOME:  ed_col = 0; break;
+            case K_END:   ed_col = (int)strlen(ed_buf); break;
+            case K_BS:    ed_backspace(); break;
+            case K_DEL:   ed_del(); break;
+            case K_F8:    ed_delete_line(); break;
+            case K_RIGHT:
+                len = (int)strlen(ed_buf);
+                if (ed_col < len) ed_col++;
+                break;
+            default:
+                if (k >= 32 && k < 127)
+                    ed_insert(k);
+                break;
+            }
+            continue;
+        }
+
         if (k == K_PGUP) { if (prog_top > 0) prog_top--; continue; }
         if (k == K_PGDN) { prog_top++; continue; }
-
-        if (k == 10) k = K_ENTER;      /* a terminal that translated it anyway */
 
         if (!want_line) {
             if (k >= 32 && k < 127) return k;

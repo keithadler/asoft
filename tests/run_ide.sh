@@ -1,18 +1,24 @@
 #!/bin/sh
 # Drives the windowed front end through a pty and diffs the screen it drew
-# against a stored snapshot. Catches layout regressions, and that the menu
-# actually reaches the interpreter: the script toggles the HTAB bug off, so
-# POS(0) has to change from 11 to 9 in the transcript.
+# against a stored snapshot. This covers more than the layout:
+#
+#   - the menu reaches the interpreter: toggling the HTAB bug off has to
+#     change POS(0) from 11 to 9 in the transcript
+#   - the editor reaches the program: line 20 is edited in place in the
+#     listing, and RUN then has to print the edited text, not the typed one
 set -e
 cd "$(dirname "$0")/.."
 
 out=build/ide.out
 python3 tools/idegrab.py \
     '10 PRINT "HI"' ENTER \
+    '20 PRINT "BETA"' ENTER \
     F5 \
     'HTAB 10: PRINT POS(0)' ENTER \
     F10 RIGHT RIGHT DOWN ENTER ESC \
     'HTAB 10: PRINT POS(0)' ENTER \
+    TAB DOWN END BS BS BS BS BS 'EDITED"' DOWN TAB \
+    F5 \
     > "$out"
 
 if diff -u tests/ide_expected.txt "$out" > build/ide.diff; then

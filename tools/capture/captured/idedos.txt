@@ -40,4 +40,4 @@
 |120 X = 0: FOR I = 1 TO 100:X = X + I:  |:|                                   |
 |130  DIM B(10): FOR I = 0 TO 10:B(I) =  |:|                                   |
 +========================================+:+===================================+
- F5 Run   F9 List   F3 Load   F2 Save   F10 Menu   Ctrl-Q Quit                  
+ TAB Edit   F5 Run   F9 List   F3 Load   F2 Save   F10 Menu   Ctrl-Q Quit       

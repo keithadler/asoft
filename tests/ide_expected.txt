@@ -3,20 +3,20 @@
 |╔═══════════════ Apple ][ ═══════════════╗░╔═════════════ Machine ═════════════╗|
 |║APPLESOFT BASIC FOR DOS                 ║░║───────────────────────────────────║|
 |║THE ROM'S BUGS, ON PURPOSE              ║░║TXTTAB   $0801                     ║|
-|║                                        ║░║VARTAB   $080D                     ║|
-|║]10 PRINT "HI"                          ║░║ARYTAB   $080D                     ║|
-|║]RUN                                    ║░║STREND   $080D                     ║|
-|║HI                                      ║░║FRETOP   $9600                     ║|
-|║]HTAB 10: PRINT POS(0)                  ║░║HIMEM    $9600                     ║|
-|║11                                      ║░║FRE(0)   36339                     ║|
+|║                                        ║░║VARTAB   $081B                     ║|
+|║]10 PRINT "HI"                          ║░║ARYTAB   $081B                     ║|
+|║]20 PRINT "BETA"                        ║░║STREND   $081B                     ║|
+|║]RUN                                    ║░║FRETOP   $9600                     ║|
+|║HI                                      ║░║HIMEM    $9600                     ║|
+|║BETA                                    ║░║FRE(0)   36325                     ║|
 |║]HTAB 10: PRINT POS(0)                  ║░║                                   ║|
-|║9                                       ║░║Control stack      0/240           ║|
-|║]                                       ║░║                                   ║|
-|║                                        ║░║Bugs active                        ║|
-|║                                        ║░║  ONERR leak         ON            ║|
-|║                                        ║░║  HTAB off-by-two    off           ║|
-|║                                        ║░║  MBF rounding       ON            ║|
-|║                                        ║░║  Greedy tokenizer   ON            ║|
+|║11                                      ║░║Control stack      0/240           ║|
+|║]HTAB 10: PRINT POS(0)                  ║░║                                   ║|
+|║9                                       ║░║Bugs active                        ║|
+|║]RUN                                    ║░║  ONERR leak         ON            ║|
+|║HI                                      ║░║  HTAB off-by-two    off           ║|
+|║EDITED                                  ║░║  MBF rounding       ON            ║|
+|║]                                       ║░║  Greedy tokenizer   ON            ║|
 |║                                        ║░║                                   ║|
 |║                                        ║░║Last error   none                  ║|
 |║                                        ║░║                                   ║|
@@ -28,7 +28,7 @@
 |╚════════════════════════════════════════╝░║                                   ║|
 |╔═══════════════ Program ════════════════╗░║                                   ║|
 |║10  PRINT "HI"                          ║░║                                   ║|
-|║                                        ║░║                                   ║|
+|║20  PRINT "EDITED"                      ║░║                                   ║|
 |║                                        ║░║                                   ║|
 |║                                        ║░║                                   ║|
 |║                                        ║░║                                   ║|
@@ -41,5 +41,5 @@
 |║                                        ║░║                                   ║|
 |║                                        ║░║                                   ║|
 |╚════════════════════════════════════════╝░╚═══════════════════════════════════╝|
-| HTAB off-by-two is now OFF                                                     |
+| TAB Edit   F5 Run   F9 List   F3 Load   F2 Save   F10 Menu   Ctrl-Q Quit       |
 +--------------------------------------------------------------------------------+
