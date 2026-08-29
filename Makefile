@@ -54,6 +54,7 @@ check: build/asoft build/asoft-ide
 	@./tests/run_local.sh apple
 	@./tests/run_ide.sh
 	@./tests/run_ide_dos.sh
+	@./tests/run_mouse_dos.sh
 
 clean:
 	rm -rf build

@@ -19,6 +19,7 @@ void ide_sink(char ch);
 void ide_start(void);
 void ide_draw_once(void);
 void ide_set_loaded(const char *name);
+void ide_set_screenfile(const char *path, void (*writer)(const char *));
 int  ide_quitting(void);
 
 /* The same screen as HTML, colours and all, for looking at a design without
@@ -77,6 +78,14 @@ static int dump_html(const char *path)
 /* Write the drawn screen out as plain text and stop. There is no pty inside
  * DOSBox to read an escape stream back from, so this is how the DOS build's
  * layout gets checked: run it, read the file out of the virtual disk, diff. */
+static int dump_screen(const char *path);
+
+/* The same, as a void, for ide.c to call after each redraw. */
+static void write_screen(const char *path)
+{
+    (void)dump_screen(path);
+}
+
 static int dump_screen(const char *path)
 {
     FILE *f = fopen(path, "w");
@@ -108,7 +117,8 @@ static void usage(const char *argv0)
     fprintf(stderr,
             "usage: %s [-n] [-dump FILE] [program.bas]\n"
             "  -n         disable the deliberate ROM bugs\n"
-            "  -dump F    draw the screen once, write it to F as text, exit\n",
+            "  -dump F    draw the screen once, write it to F as text, exit\n"
+            "  -screen F  keep running, rewriting F after every redraw\n",
             argv0);
 }
 
@@ -117,10 +127,13 @@ int main(int argc, char **argv)
     char line[256];
     const char *path = 0;
     const char *dump = 0;
+    const char *screen = 0;
     int i;
 
     for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-dump") == 0 && i + 1 < argc) {
+        if (strcmp(argv[i], "-screen") == 0 && i + 1 < argc) {
+            screen = argv[++i];
+        } else if (strcmp(argv[i], "-dump") == 0 && i + 1 < argc) {
             dump = argv[++i];
         } else if (strcmp(argv[i], "-n") == 0) {
             memset(bug_enabled, 0, sizeof(bug_enabled));
@@ -137,6 +150,8 @@ int main(int argc, char **argv)
     ide_start();
     tui_init();
 
+    if (screen)
+        ide_set_screenfile(screen, write_screen);
     if (path)
         ide_set_loaded(path);
     if (path && !it_load(path)) {

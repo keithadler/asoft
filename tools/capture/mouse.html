@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>asoft mouse rig</title>
+<link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
+<script src="https://v8.js-dos.com/latest/js-dos.js"></script>
+<style>html,body{height:100%;margin:0;background:#000;color:#7ddc7d;
+  font:13px ui-monospace,Menlo,monospace}#dos{width:100%;height:88%}
+  #log{padding:6px 10px}</style>
+</head><body><div id="dos"></div><div id="log">starting</div>
+<script>
+// Drives the DOS front end's mouse from outside, then posts the screen it
+// drew back to the server. There is no pty inside DOSBox and no way to read
+// its text memory from the host, so the program rewrites OUT.TXT after every
+// redraw (-screen) and this reads it back off the emulator's disk.
+//
+// Clicks are given in text cells: the screen is 80x50 of 8x8 pixels, and
+// js-dos wants the position normalised against the canvas.
+const NAME = new URLSearchParams(location.search).get("name") || "mousedos";
+const COLS = 80, ROWS = 50, CELL = 8;
+const log = m => { document.getElementById("log").textContent = m;
+                   window.__status = m; };
+
+Dos(document.getElementById("dos"), { url: "mouse.jsdos", autoStart: true, kiosk: true,
+  onEvent: (e, ci) => { if (ci) window.__ci = ci; } });
+
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+async function click(col, row) {
+  const ci = window.__ci;
+  ci.sendMouseMotion((col * CELL + CELL / 2) / (COLS * CELL),
+                     (row * CELL + CELL / 2) / (ROWS * CELL));
+  await wait(250);
+  ci.sendMouseButton(0, true);
+  await wait(120);
+  ci.sendMouseButton(0, false);
+  await wait(700);
+}
+
+async function screen() {
+  const d = await window.__ci.fsReadFile("OUT.TXT");
+  return new TextDecoder().decode(d);
+}
+
+(async () => {
+  // Wait for the front end to come up and start writing its screen.
+  for (let i = 0; i < 90; i++) {
+    await wait(1000);
+    log("waiting for the front end (" + i + "s)");
+    try { const s = await screen(); if (s && s.indexOf("Machine") >= 0) break; }
+    catch (e) { /* not written yet */ }
+  }
+
+  log("clicking the Bugs menu");
+  await click(18, 0);
+  const opened = await screen();
+
+  log("clicking a toggle");
+  await click(22, 3);
+
+  log("closing the menu");
+  await click(60, 20);
+  const after = await screen();
+
+  const body = "--- menu open ---\n" + opened + "--- after the toggle ---\n" + after;
+  await fetch("/_capture", { method: "POST",
+      headers: { "X-Capture-Name": NAME }, body });
+  log("done: posted " + body.length + " bytes as " + NAME);
+  window.__done = true;
+})().catch(e => log("failed: " + e));
+</script></body></html>

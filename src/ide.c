@@ -72,6 +72,14 @@ static int  break_seen;
 static char status[80];
 static char loaded[40];               /* shown in the identity strip */
 
+/* Where to write the drawn screen after every redraw, or empty. There is no
+ * pty inside DOSBox and no way to read its text memory from outside, so this
+ * is how the DOS build's mouse and menus get checked: drive them, then read
+ * the file back out of the emulator's disk. Off unless asked for. */
+static char screenfile[64];
+static void (*screen_writer)(const char *path);
+static void screen_snapshot(void);
+
 /* Which pane the keyboard is talking to. The prompt is the Apple as it was:
  * type a numbered line and it is stored. The editor is what an IDE is for --
  * move around the listing and change it in place. Tab swaps between them. */
@@ -707,6 +715,7 @@ static void menu_loop(int start)
         }
         tui_cursor(-1, -1);
         tui_flush();
+        screen_snapshot();
 
         k = tui_getkey();
 
@@ -753,6 +762,7 @@ static int pump(int want_line, char *buf, int max)
         overlay_input();
         place_cursor();
         tui_flush();
+        screen_snapshot();
 
         k = tui_getkey();
         if (k == 10) k = K_ENTER;      /* a terminal that translated it anyway */
@@ -917,6 +927,19 @@ int host_break(void)
 }
 
 int ide_quitting(void) { return quitting; }
+
+void ide_set_screenfile(const char *path, void (*writer)(const char *))
+{
+    strncpy(screenfile, path ? path : "", sizeof(screenfile) - 1);
+    screenfile[sizeof(screenfile) - 1] = '\0';
+    screen_writer = writer;
+}
+
+static void screen_snapshot(void)
+{
+    if (screenfile[0] && screen_writer)
+        screen_writer(screenfile);
+}
 
 /* Draw the whole layout once, without waiting for a key. */
 void ide_draw_once(void)
