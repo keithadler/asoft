@@ -21,7 +21,8 @@ check: build/asoft
 	  $(CC) $(CFLAGS) -I. -o build/$$n $$t $(CORE) $(LDLIBS); \
 	  ./build/$$n; \
 	done
-	@./tests/run_golden.sh
+	@./tests/run_capture.sh tests 'FRE(0)=35491'
+	@./tests/run_capture.sh wide
 
 clean:
 	rm -rf build

@@ -495,11 +495,13 @@ static void call_builtin(unsigned char t, value *out)
     case T_POS: (void)paren_num(); out->num = scr_col(); return;
 
     case T_SCRNPAREN: {              /* the "(" is part of the token */
-        (void)need_num();
+        double x = need_num(), y;
         expect(',');
-        (void)need_num();
+        y = need_num();
         expect(')');
-        out->num = 0;
+        if (x < 0 || x > 39 || y < 0 || y > 47)
+            raise_err(ERR_ILLEGALQTY);
+        out->num = gfx_scrn((int)x, (int)y);
         return;
     }
 
@@ -701,6 +703,11 @@ static void call_user_fn(value *out)
 
 static int jumped;
 
+/* THEN may be followed directly by a statement with no colon between, so a
+ * true IF has to tell the statement loop that the next statement is allowed
+ * to butt straight up against it. */
+static int if_fallthrough;
+
 static void push_frame(int kind, int bytes)
 {
     if (cstack_bytes + bytes > CSTACK_BYTES ||
@@ -838,10 +845,11 @@ static void exec_line(void)
             ip++;
         if (!*ip)
             return;
+        if_fallthrough = 0;
         exec_statement();
         if (jumped || quitting)
             return;
-        if (*ip && *ip != ':')
+        if (*ip && *ip != ':' && !if_fallthrough)
             raise_err(ERR_SYNTAX);
     }
 }
@@ -1269,7 +1277,8 @@ static void exec_statement(void)
             goto_line(read_lineno());
             return;
         }
-        return;                      /* fall through to the statements */
+        if_fallthrough = 1;
+        return;                      /* run the rest of the line */
     }
 
     case T_ON: {
@@ -1409,8 +1418,9 @@ static void exec_statement(void)
     case T_NORMAL: case T_INVERSE: case T_FLASH:
     case T_TRACE:  case T_NOTRACE: case T_SHLOAD:
         return;
+    /* SPEED=, ROT= and SCALE= carry the "=" inside the keyword itself, so
+     * there is no separate T_EQ token to consume. */
     case T_SPEED: case T_ROT: case T_SCALE:
-        expect(T_EQ);
         (void)need_num();
         return;
     case T_PRNUM: case T_INNUM:
@@ -1434,12 +1444,10 @@ static void exec_statement(void)
     case T_GR:   gfx_gr(); return;
     case T_HGR:  gfx_hgr(); return;
     case T_HGR2: gfx_hgr2(); return;
-    case T_COLOR:
-        expect(T_EQ);
+    case T_COLOR:                    /* the "=" is part of the token */
         gfx_color((int)need_num());
         return;
     case T_HCOLOR:
-        expect(T_EQ);
         gfx_hcolor((int)need_num());
         return;
     case T_PLOT: {
