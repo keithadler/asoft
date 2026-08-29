@@ -1,0 +1,52 @@
+# Borland C++ 3.1 makefile for the Turbo Vision build.
+#
+# Run this under DOS or DOSBox with BC++ 3.1 installed; see README.md. Turbo
+# Vision only exists for Borland, which is why this build cannot be produced
+# by the Open Watcom cross-compile in build-dos.sh.
+#
+#   C:\> make -f makefile.bc
+#
+# Large model throughout (-ml): Turbo Vision requires it, and so does the 64K
+# memory image, which wants every pointer far. -N adds stack overflow checks;
+# the recursive-descent evaluator is the reason build-dos.sh raises the stack.
+
+BCDIR = C:\BC
+TVDIR = $(BCDIR)\TVISION
+
+CC   = $(BCDIR)\BIN\BCC
+LINK = $(BCDIR)\BIN\TLINK
+
+CFLAGS = -ml -O2 -w -I$(BCDIR)\INCLUDE -Isrc
+CXXFLAGS = -ml -O2 -w -I$(BCDIR)\INCLUDE -I$(TVDIR)\INCLUDE -Isrc
+
+OBJS = a2mem.obj bugs.obj errs.obj gfx.obj interp.obj mbf.obj \
+       panes.obj screen.obj token.obj main_tv.obj
+
+ASOFT.EXE: $(OBJS)
+	$(CC) -ml -e$@ $(OBJS) $(TVDIR)\LIB\TV.LIB
+
+a2mem.obj:  src\a2mem.c
+	$(CC) $(CFLAGS) -c -o$@ src\a2mem.c
+bugs.obj:   src\bugs.c
+	$(CC) $(CFLAGS) -c -o$@ src\bugs.c
+errs.obj:   src\errs.c
+	$(CC) $(CFLAGS) -c -o$@ src\errs.c
+gfx.obj:    src\gfx.c
+	$(CC) $(CFLAGS) -c -o$@ src\gfx.c
+interp.obj: src\interp.c
+	$(CC) $(CFLAGS) -c -o$@ src\interp.c
+mbf.obj:    src\mbf.c
+	$(CC) $(CFLAGS) -c -o$@ src\mbf.c
+panes.obj:  src\panes.c
+	$(CC) $(CFLAGS) -c -o$@ src\panes.c
+screen.obj: src\screen.c
+	$(CC) $(CFLAGS) -c -o$@ src\screen.c
+token.obj:  src\token.c
+	$(CC) $(CFLAGS) -c -o$@ src\token.c
+
+main_tv.obj: src\main_tv.cpp
+	$(CC) $(CXXFLAGS) -P -c -o$@ src\main_tv.cpp
+
+clean:
+	del *.obj
+	del ASOFT.EXE

@@ -20,7 +20,8 @@ mkdir -p web/bundle
 # -ml       large model: all pointers far, needed for the 64K memory image
 # -k16384   16K stack; the recursive-descent evaluator wants more than the 4K default
 wcl -bcl=dos -ml -q -k16384 -fe=$OUT \
-    src/mbf.c src/token.c src/a2mem.c src/interp.c src/main_stdio.c
+    src/mbf.c src/token.c src/a2mem.c src/errs.c src/bugs.c src/gfx.c \
+    src/screen.c src/panes.c src/interp.c src/main_stdio.c
 
 rm -f *.obj src/*.obj 2>/dev/null || true
 ls -l $OUT
