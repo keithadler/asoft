@@ -26,9 +26,9 @@ def looks_like_basic(path):
         return False
     return sum(1 for l in head if NUMBERED.match(l)) >= 3
 
-def run(binary, path, seconds):
+def run(binary, path, seconds, extra=()):
     try:
-        p = subprocess.run([binary, '-r', path], stdin=subprocess.DEVNULL,
+        p = subprocess.run([binary] + list(extra) + ['-r', path], stdin=subprocess.DEVNULL,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            timeout=seconds)
         return p.stdout, False
@@ -41,6 +41,8 @@ def main():
     ap.add_argument('--seconds', type=int, default=8)
     ap.add_argument('--binary', default='build/asoft')
     ap.add_argument('--show', help='list the programs raising this error')
+    ap.add_argument('--no-bugs', action='store_true',
+                    help='pass -n, turning off the deliberate ROM bugs')
     args = ap.parse_args()
 
     files = []
@@ -56,7 +58,8 @@ def main():
     clean = timeouts = 0
 
     for p in sorted(files):
-        out, timed_out = run(args.binary, p, args.seconds)
+        out, timed_out = run(args.binary, p, args.seconds,
+                             ('-n',) if args.no_bugs else ())
         out = ANSI.sub(b'', out)
         errs = sorted({m.group(1).decode() for m in ERR.finditer(out)})
         name = os.path.relpath(p, args.directory)

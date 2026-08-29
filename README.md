@@ -149,16 +149,38 @@ Over 116 programs from eight repositories it found four, all since fixed:
   across the gap. The ROM resolves it by looking at what follows a matched
   AT: an N means the word was ATN, an O means it was really TO.
 
-What is left, and why none of it is a bug here: three programs use `NEXT I,J`,
-which this reference rejects too; one relies on `DIM A` without a subscript,
-which it also rejects; one is defeated by the greedy tokenizer, which is a
-deliberate ROM bug; one is Microsoft BASIC (`DEFINT A-Z`); one uses string
-`DEF FN`, which Applesoft has never had; and two are wrapped listings rather
-than source, their DATA statements continued across lines with no line number.
+A fifth thing it found was not a bug but a missing feature: `NEXT I,J`. Real
+Applesoft has always taken a list of variables there and programs written for
+real machines use it, so that is implemented -- see the note below, because it
+is the one place this deliberately parts company with the reference.
+
+Six programs still fail, and none of them is a bug here: one relies on `DIM A`
+without a subscript, which the reference rejects too; one is defeated by the
+greedy tokenizer, which is a deliberate ROM bug and which `-n` gets past; one
+is Microsoft BASIC (`DEFINT A-Z`); one uses string `DEF FN`, which Applesoft
+has never had; and two are wrapped listings rather than source, their DATA
+statements continued across lines with no line number.
+
+### The bugs earn their keep
+
+Turning the ROM bugs off makes *more* programs fail, not fewer -- 28 against
+6. The greedy tokenizer is why: matching keywords anywhere is what lets
+`FORI=1TO3` be read as `FOR I = 1 TO 3`, and period programs are written
+without spaces because the machine did not need them. Switching it off buys
+you `TOTAL` as a variable and costs you every program that ran the words
+together. The default is the authentic one, and it is also the one that runs
+more real code.
 
 ## Where it differs from the reference
 
-Two places, both measured rather than assumed:
+Three places, all measured rather than assumed:
+
+- `NEXT` takes a list of variables here -- `NEXT J,I` closes both loops -- and
+  the reference takes only one. This is the single deliberate divergence: real
+  Applesoft has always accepted the list, and programs written for real
+  machines depend on it, so this follows the hardware. Because it cannot be
+  checked against the reference, its expectation is written down instead, in
+  `tests/local/nextlist.expected`.
 
 - `FRE(0)` reads one byte higher than the reference: 35492 against 35491, one
   byte of collector residue.

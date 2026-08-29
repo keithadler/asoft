@@ -1073,37 +1073,52 @@ static void do_for(void)
     }
 }
 
+/* NEXT closes one loop, or several: NEXT J,I closes J and then I, which is
+ * how a nested pair is ended on one line. Each variable is dealt with in
+ * turn, and the moment one of them still has iterations left the jump is
+ * taken and the rest of the list is simply not reached -- which is correct,
+ * because those outer loops are not finished either.
+ *
+ * The reference build takes only a single variable here. Real Applesoft has
+ * always taken a list, and programs written for real machines use it, so this
+ * follows the hardware rather than the reference. It is the one place that is
+ * deliberately not byte-identical; see README. */
 static void do_next(void)
 {
-    a2addr want = 0;
-    int i;
+    for (;;) {
+        a2addr want = 0;
+        int i;
 
-    if (isalpha((unsigned char)*ip)) {
-        int type;
-        want = lvalue(&type);
-    }
+        if (isalpha((unsigned char)*ip)) {
+            int type;
+            want = lvalue(&type);
+        }
 
-    /* NEXT with no variable matches the innermost loop; with one, it also
-     * discards any loops nested inside it. */
-    for (i = ncstack - 1; i >= 0; i--)
-        if (cstack[i].kind == FRAME_FOR && (!want || cstack[i].var == want))
-            break;
-    if (i < 0)
-        raise_err(ERR_NEXTWITHOUTFOR);
-    while (ncstack > i + 1)
-        pop_frame();
+        /* NEXT with no variable matches the innermost loop; with one, it also
+         * discards any loops nested inside it. */
+        for (i = ncstack - 1; i >= 0; i--)
+            if (cstack[i].kind == FRAME_FOR && (!want || cstack[i].var == want))
+                break;
+        if (i < 0)
+            raise_err(ERR_NEXTWITHOUTFOR);
+        while (ncstack > i + 1)
+            pop_frame();
 
-    {
-        frame *f = &cstack[i];
-        double v = load_num(f->var) + f->step;
-        store_num(f->var, v);
-        if ((f->step >= 0) ? (v <= f->limit) : (v >= f->limit)) {
-            cur_line = f->line;
-            ip = (cur_line ? a2_prog_tokens(cur_line) : imm) + f->offset;
-            jumped = 1;
-        } else {
+        {
+            frame *f = &cstack[i];
+            double v = load_num(f->var) + f->step;
+            store_num(f->var, v);
+            if ((f->step >= 0) ? (v <= f->limit) : (v >= f->limit)) {
+                cur_line = f->line;
+                ip = (cur_line ? a2_prog_tokens(cur_line) : imm) + f->offset;
+                jumped = 1;
+                return;
+            }
             pop_frame();
         }
+
+        if (!eat(','))
+            return;
     }
 }
 
