@@ -1,0 +1,6 @@
+]]]LITERAL 0
+]]]]]READ 5
+]]]]CONCAT 5
+]]]]]]TESTSCASE 5
+LEN 5 [HELLO]
+]

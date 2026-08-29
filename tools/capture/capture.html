@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>asoft capture</title>
+<link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
+<script src="https://v8.js-dos.com/latest/js-dos.js"></script>
+<style>html,body{height:100%;margin:0;background:#000;color:#8f8;
+ font:13px ui-monospace,monospace}#dos{position:absolute;left:-4000px;width:640px;height:480px}
+ #log{padding:12px;white-space:pre-wrap}</style>
+</head><body>
+<div id="dos"></div>
+<div id="log">booting...</div>
+<script>
+const NAME = new URLSearchParams(location.search).get("name") || "capture";
+const log = (s) => { document.getElementById("log").textContent = s; window.__status = s; };
+window.__done = false;
+Dos(document.getElementById("dos"), {
+  url: "capture.jsdos?t=" + Date.now(),
+  autoStart: true, kiosk: true,
+  onEvent: (event, ci) => { if (ci) window.__ci = ci; }
+});
+
+// DOSBox writes DONE.TXT after the redirect finishes; poll the virtual FS for
+// it, then ship OUT.TXT back to the server. fsReadFile rejects (or hangs) while
+// the file is absent, so every call gets a timeout guard.
+const guard = (p, ms) => Promise.race([
+  p.then(v => ({ ok: v })).catch(e => ({ err: String(e) })),
+  new Promise(r => setTimeout(() => r({ err: "timeout" }), ms)),
+]);
+
+(async function poll() {
+  for (let i = 0; i < 120; i++) {
+    await new Promise(r => setTimeout(r, 1000));
+    if (!window.__ci) { log("waiting for emulator (" + i + "s)"); continue; }
+    const done = await guard(window.__ci.fsReadFile("DONE.TXT"), 3000);
+    if (!done.ok) { log("running (" + i + "s)"); continue; }
+    const out = await guard(window.__ci.fsReadFile("OUT.TXT"), 5000);
+    if (!out.ok) { log("DONE but OUT.TXT unreadable: " + out.err); return; }
+    await fetch("/_capture", { method: "POST", headers: { "X-Capture-Name": NAME }, body: out.ok });
+    window.__done = true;
+    log("captured " + out.ok.length + " bytes -> captured/" + NAME + ".txt");
+    return;
+  }
+  log("gave up after 120s");
+})();
+</script></body></html>

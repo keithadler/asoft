@@ -1,0 +1,89 @@
+/* Round-trips source through tokenize + detokenize and compares against the
+ * LIST output captured from the reference DOS build. The expectations are the
+ * part of each listed line that follows the line number and its single space,
+ * so "10  REM  HI" contributes " REM  HI". */
+#include "../src/token.h"
+#include <stdio.h>
+#include <string.h>
+
+static int failures = 0;
+
+static void chk(const char *src, const char *want)
+{
+    unsigned char toks[512];
+    char out[512];
+    int n = tok_tokenize(src, toks, (int)sizeof(toks), 1);
+    if (n < 0) {
+        printf("  FAIL  tokenize overflow: %s\n", src);
+        failures++;
+        return;
+    }
+    tok_detokenize(toks, out, (int)sizeof(out));
+    if (strcmp(out, want) != 0) {
+        printf("  FAIL  %s\n        want [%s]\n        got  [%s]\n", src, want, out);
+        failures++;
+    }
+}
+
+int main(void)
+{
+    /* Every pair below is straight out of tools/capture/captured/tests.txt. */
+    chk("REM APPLESOFT COMPATIBILITY CHECKS", " REM  APPLESOFT COMPATIBILITY CHECKS");
+    chk("PRINT \"FLOATS:\"", " PRINT \"FLOATS:\"");
+    chk("PRINT .1 + .2;\" \";1/3;\" \";2^10;\" \";SQR(2)",
+        " PRINT .1 + .2;\" \";1 / 3;\" \";2 ^ 10;\" \"; SQR (2)");
+    chk("PRINT 1E9;\" \";.001;\" \";.01;\" \";999999999",
+        " PRINT 1E9;\" \";.001;\" \";.01;\" \";999999999");
+    chk("PRINT -12345.678;\" \";3.14159265", " PRINT  - 12345.678;\" \";3.14159265");
+    chk("PRINT", " PRINT ");
+    chk("A$ = \"APPLESOFT\": PRINT LEFT$(A$,5);\"-\";MID$(A$,6,4);\"-\";RIGHT$(A$,4)",
+        "A$ = \"APPLESOFT\": PRINT  LEFT$ (A$,5);\"-\"; MID$ (A$,6,4);\"-\"; RIGHT$ (A$,4)");
+    chk("PRINT LEN(A$);\" \";ASC(\"A\");\" \";CHR$(66);\" \";VAL(\"12.5\")+1",
+        " PRINT  LEN (A$);\" \"; ASC (\"A\");\" \"; CHR$ (66);\" \"; VAL (\"12.5\") + 1");
+    chk("X = 0: FOR I = 1 TO 100: X = X + I: NEXT: PRINT \"SUM=\";X",
+        "X = 0: FOR I = 1 TO 100:X = X + I: NEXT : PRINT \"SUM=\";X");
+    chk("DIM B(10): FOR I = 0 TO 10: B(I) = I * I: NEXT",
+        " DIM B(10): FOR I = 0 TO 10:B(I) = I * I: NEXT ");
+    chk("PRINT \"B(3)=\";B(3);\" B(10)=\";B(10)",
+        " PRINT \"B(3)=\";B(3);\" B(10)=\";B(10)");
+    chk("GOSUB 900", " GOSUB 900");
+    chk("DATA 11,22,HELLO", " DATA  11,22,HELLO");
+    chk("READ P,Q,R$: PRINT P + Q;\" \";R$", " READ P,Q,R$: PRINT P + Q;\" \";R$");
+    chk("HTAB 10: P = POS(0): PRINT \"POS AFTER HTAB 10 = \";P;\" (ROM SAYS 11)\"",
+        " HTAB 10:P =  POS (0): PRINT \"POS AFTER HTAB 10 = \";P;\" (ROM SAYS 11)\"");
+    chk("PRINT \"FRE(0)=\";FRE(0)", " PRINT \"FRE(0)=\"; FRE (0)");
+    chk("ONERR GOTO 300", " ONERR  GOTO 300");
+    chk("N = 0", "N = 0");
+    chk("X = 1/0", "X = 1 / 0");
+    chk("N = N + 1: IF N < 100 THEN 250", "N = N + 1: IF N < 100 THEN 250");
+    chk("END", " END ");
+    chk("PRINT \"GOSUB OK\": RETURN", " PRINT \"GOSUB OK\": RETURN ");
+
+    /* And from captured/probe-era runs. */
+    chk("X = 1: PRINT X", "X = 1: PRINT X");
+    chk("A = B ^ 2", "A = B ^ 2");
+    chk("IF X <> 0 THEN PRINT \"HI\"", " IF X <  > 0 THEN  PRINT \"HI\"");
+    chk("FORI=1TO10:NEXTI", " FOR I = 1 TO 10: NEXT I");
+    chk("PRINT\"A\";TAB(20);\"B\"", " PRINT \"A\"; TAB( 20);\"B\"");
+
+    /* The greedy tokenizer eats TO out of TOTAL; switching it off does not. */
+    {
+        unsigned char toks[64];
+        char out[128];
+        tok_tokenize("TOTAL = 5", toks, (int)sizeof(toks), 1);
+        tok_detokenize(toks, out, (int)sizeof(out));
+        if (strcmp(out, " TO TAL = 5") != 0) {
+            printf("  FAIL  greedy TOTAL want [ TO TAL = 5] got [%s]\n", out);
+            failures++;
+        }
+        tok_tokenize("TOTAL = 5", toks, (int)sizeof(toks), 0);
+        tok_detokenize(toks, out, (int)sizeof(out));
+        if (strcmp(out, "TOTAL = 5") != 0) {
+            printf("  FAIL  non-greedy TOTAL want [TOTAL = 5] got [%s]\n", out);
+            failures++;
+        }
+    }
+
+    printf("test_token: %s\n", failures ? "FAILED" : "ok");
+    return failures ? 1 : 0;
+}

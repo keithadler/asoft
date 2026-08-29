@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>asoft debug harness</title>
+<link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
+<script src="https://v8.js-dos.com/latest/js-dos.js"></script>
+<style>
+  html,body{height:100%;margin:0;background:#000;overflow:hidden}
+  #dos{position:absolute;left:0;top:0;width:800px;height:600px}
+  /* js-dos renders through WebGL without preserveDrawingBuffer, so the real
+     canvas reads back blank. Mirror each frame onto a 2D canvas laid over it;
+     pointer-events:none lets clicks and focus fall through to the emulator. */
+  #mirror{position:absolute;left:0;top:0;width:800px;height:600px;
+          image-rendering:pixelated;background:#000;pointer-events:none}
+</style>
+</head><body>
+<div id="dos"></div>
+<canvas id="mirror" width="640" height="480"></canvas>
+<script>
+window.__events = [];
+Dos(document.getElementById("dos"), {
+  url: "asoft.jsdos",
+  autoStart: true,
+  onEvent: function (event, ci) {
+    window.__events.push(event);
+    if (ci) window.__ci = ci;
+  }
+});
+window.__mirror = async function () {
+  const ci = window.__ci;
+  if (!ci) return "no ci";
+  const img = await ci.screenshot();
+  const m = document.getElementById("mirror");
+  if (m.width !== img.width || m.height !== img.height) {
+    m.width = img.width; m.height = img.height;
+  }
+  m.getContext("2d").putImageData(img, 0, 0);
+  return img.width + "x" + img.height;
+};
+setInterval(function () { window.__mirror(); }, 400);
+</script></body></html>
