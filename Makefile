@@ -7,10 +7,13 @@ SRC   := $(wildcard src/*.c)
 TESTS := $(wildcard tests/test_*.c)
 CORE  := $(filter-out src/main_%.c,$(SRC)) tests/host_stub.c
 
-all: build/asoft
+all: build/asoft build/layout
 
 build/asoft: $(SRC) | build
 	$(CC) $(CFLAGS) -I. -o $@ $(SRC) $(LDLIBS)
+
+build/layout: tools/layout.c $(filter-out src/main_%.c,$(SRC)) | build
+	$(CC) $(CFLAGS) -I. -o $@ tools/layout.c $(filter-out src/main_%.c,$(SRC)) $(LDLIBS)
 
 build:
 	mkdir -p build
