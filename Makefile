@@ -48,7 +48,9 @@ check: build/asoft build/asoft-ide
 	@./tests/run_capture.sh atthen
 	@./tests/run_capture.sh spacedkw
 	@./tests/run_capture.sh dimscalar
+	@./tests/run_capture.sh errors
 	@./tests/run_local.sh nextlist
+	@./tests/run_local.sh apple
 	@./tests/run_ide.sh
 	@./tests/run_ide_dos.sh
 

@@ -141,8 +141,14 @@ static int str_cmp(const a2str *a, const a2str *b)
 
 /* --------------------------------------------------------- number store */
 
+/* Every arithmetic result passes through here, which is also where a value
+ * too large for the accumulator has to be caught: the machine raised
+ * OVERFLOW rather than quietly handing back its largest number. */
 static double num_round(double v)
 {
+    mbf_t m;
+    if (!mbf_pack(v, &m))
+        raise_err(ERR_OVERFLOW);
     return bug_enabled[BUG_MBF_ROUNDING] ? mbf_round(v) : v;
 }
 
@@ -1482,6 +1488,11 @@ static void exec_statement(void)
                 idx[nd++] = (int)v;
             } while (eat(','));
             expect(')');
+            /* Dimensioning an array that already exists -- whether by an
+             * earlier DIM or by having been used, which creates it with
+             * eleven elements -- is an error, not a resize. */
+            if (a2_array_exists(name, type))
+                raise_err(ERR_REDIMD);
             if (!a2_array(name, type, idx, nd, 1, &err))
                 raise_err(err ? err : ERR_OUTOFMEM);
         } while (eat(','));

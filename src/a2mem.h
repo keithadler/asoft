@@ -93,6 +93,10 @@ a2addr a2_var(const char *name, int type, int create);
 a2addr a2_array(const char *name, int type, const int *idx, int ndims,
                 int create, int *err);
 
+/* Has this array been created yet, by DIM or by being used? DIM needs to
+ * know, because dimensioning one twice is an error rather than a resize. */
+int a2_array_exists(const char *name, int type);
+
 /* --- strings ------------------------------------------------------------ */
 /* Reserve len bytes at the bottom of string space. Returns 0 if there is no
  * room even after a collection. */

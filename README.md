@@ -204,12 +204,19 @@ more real code.
 
 Three places, all measured rather than assumed:
 
+Two of them are deliberate, and both follow the hardware rather than the
+reference. Neither can be checked against it, so their expectations are
+written down in `tests/local/` instead.
+
 - `NEXT` takes a list of variables here -- `NEXT J,I` closes both loops -- and
-  the reference takes only one. This is the single deliberate divergence: real
-  Applesoft has always accepted the list, and programs written for real
-  machines depend on it, so this follows the hardware. Because it cannot be
-  checked against the reference, its expectation is written down instead, in
-  `tests/local/nextlist.expected`.
+  the reference takes only one. Real Applesoft has always accepted the list,
+  and programs written for real machines depend on it.
+- After `ONERR` traps, `PEEK(218) + 256 * PEEK(219)` gives the line the error
+  happened on. The reference gives the line `ONERR` was pointed at instead,
+  which is of no use to the handler and is not what the machine did.
+
+A third difference is not a divergence but a bug in the reference: `2 ^ 200`
+hangs it. Overflow raises `?OVERFLOW` here, as it should.
 
 - `FRE(0)` reads one byte higher than the reference: 35492 against 35491, one
   byte of collector residue.

@@ -218,6 +218,20 @@ a2addr a2_var(const char *name, int type, int create)
 
 /* Array block layout: name (2), block length (2), ndims (1), then each
  * dimension's element count (2 each, first dimension first), then the data. */
+int a2_array_exists(const char *name, int type)
+{
+    unsigned char want[2];
+    a2addr p, arytab, strend;
+
+    name_bytes(name, type, want);
+    arytab = a2_word(ZP_ARYTAB);
+    strend = a2_word(ZP_STREND);
+    for (p = arytab; p < strend; p += a2_word(p + 2))
+        if (a2mem[p] == want[0] && a2mem[p + 1] == want[1])
+            return 1;
+    return 0;
+}
+
 a2addr a2_array(const char *name, int type, const int *idx, int ndims,
                 int create, int *err)
 {
