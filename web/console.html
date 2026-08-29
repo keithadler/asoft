@@ -2,75 +2,215 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Applesoft BASIC for DOS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Applesoft BASIC — Console</title>
 <link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
 <script src="https://v8.js-dos.com/latest/js-dos.js"></script>
 <style>
-  html, body { height: 100%; margin: 0; overflow: hidden; background: #111; color: #b9b9b9;
-               font: 13px/1.5 ui-monospace, "SF Mono", Menlo, monospace; }
+  :root { color-scheme: dark; }
+  html, body { height: 100%; margin: 0; background: #0c0c0e; color: #c5c5c5;
+               font: 14px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
   body { display: flex; }
   #dos { flex: 1 1 auto; min-width: 0; height: 100vh; }
-  aside { flex: 0 0 260px; padding: 18px 20px; background: #191919;
-          border-left: 1px solid #2a2a2a; overflow: auto; }
-  h1 { font-size: 13px; color: #eee; margin: 0 0 2px; letter-spacing: .02em; }
-  p.sub { color: #777; margin: 0 0 16px; }
-  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
-       color: #777; margin: 18px 0 6px; font-weight: 600; }
+  aside { flex: 0 0 300px; padding: 16px 18px 28px; background: #141417;
+          border-left: 1px solid #26262c; overflow-y: auto; }
+  h1 { font-size: 14px; color: #f0f0f0; margin: 0; letter-spacing: .02em; }
+  .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  a { color: #7ddc7d; }
+  p.sub { color: #8a8a92; margin: 0 0 14px; font-size: 12.5px; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .09em;
+       color: #77777f; margin: 20px 0 8px; font-weight: 600; }
   code { color: #7ddc7d; }
-  ul { margin: 0; padding-left: 16px; }
-  li { margin-bottom: 5px; }
-  .note { color: #666; margin-top: 18px; font-size: 12px; }
-  @media (max-width: 720px) { body { flex-direction: column; } aside { flex: none; border: 0; } }
+  .steps { margin: 0 0 4px; padding: 0; list-style: none; counter-reset: s; }
+  .steps li { counter-increment: s; margin-bottom: 6px; padding-left: 24px; position: relative;
+              color: #a8a8b0; font-size: 12.5px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 1px;
+      width: 16px; height: 16px; border-radius: 50%; background: #1f2b1f; color: #7ddc7d;
+      font-size: 10.5px; display: flex; align-items: center; justify-content: center; }
+  button.prog { display: block; width: 100%; text-align: left; margin: 0 0 6px;
+      background: #1a1a1f; color: inherit; border: 1px solid #2b2b33; border-radius: 6px;
+      padding: 8px 10px; font: inherit; cursor: pointer;
+      transition: border-color .12s, background .12s; }
+  button.prog:hover { border-color: #7ddc7d; background: #1d221d; }
+  button.prog b { color: #7ddc7d; font-weight: 600; }
+  button.prog small { display: block; color: #8a8a92; font-size: 11.5px; margin-top: 1px; }
+  button.cmd { display: inline-block; margin: 0 4px 6px 0; background: #1a1a1f; color: #7ddc7d;
+      border: 1px solid #2b2b33; border-radius: 5px; padding: 3px 8px; font: inherit;
+      font-size: 12px; cursor: pointer; }
+  button.cmd:hover { border-color: #7ddc7d; }
+  .note { color: #6d6d75; margin-top: 8px; font-size: 12px; }
+  #typing { position: fixed; left: 16px; bottom: 14px; background: #1f2b1f; color: #7ddc7d;
+      border: 1px solid #7ddc7d55; border-radius: 6px; padding: 6px 12px; font-size: 12.5px;
+      opacity: 0; transition: opacity .2s; pointer-events: none; }
+  #typing.on { opacity: 1; }
+  details { margin-bottom: 6px; }
+  summary { cursor: pointer; color: #a8a8b0; font-size: 12.5px; }
+  details p { font-size: 12.5px; color: #8a8a92; margin: 6px 0 8px; }
+  @media (max-width: 760px) {
+    body { flex-direction: column; }
+    #dos { height: 60vh; flex: none; }
+    aside { flex: 1 1 auto; border-left: 0; border-top: 1px solid #26262c; }
+  }
 </style>
 </head>
 <body>
 <div id="dos"></div>
 <aside>
-  <h1>Applesoft BASIC for DOS</h1>
-  <p class="sub">Console build &mdash; <a href="./" style="color:#7ddc7d">back</a></p>
+  <div class="top"><h1>Applesoft BASIC</h1><a href="./" style="font-size:12px">&larr; home</a></div>
+  <p class="sub">The Apple II's BASIC, running as a real 16-bit DOS program in your browser.</p>
 
-  <h2>Try this</h2>
-  <ul>
-    <li><code>LOAD TESTS.BAS</code></li>
-    <li><code>LIST</code></li>
-    <li><code>RUN</code></li>
-  </ul>
+  <h2>New here?</h2>
+  <ol class="steps">
+    <li>Wait for the <code>]</code> prompt to appear.</li>
+    <li>Click any program below — it types the commands for you.</li>
+    <li>To stop a running program, press <code>Ctrl-C</code> (or <code>Q</code> in Snake).</li>
+  </ol>
 
-  <h2>Graphics</h2>
-  <ul>
-    <li><code>LOAD HGRDEMO.BAS</code><br>then <code>RUN</code> &mdash; colour bars,
-        and a white border that comes out violet</li>
-    <li><code>LOAD HGRSHAP.BAS</code><br>shape tables: scale, rotation,
-        <code>XDRAW</code>, collisions</li>
-  </ul>
-  <p class="note">Hi-res hides the text, as the Apple did. Type
-     <code>TEXT</code> blind and press return to come back.</p>
+  <h2>Programs — click to run</h2>
+  <div id="programs"></div>
+  <p class="note">Each click stops whatever is running, comes back to text mode,
+     then types <code>LOAD</code> and <code>RUN</code> for you.</p>
 
-  <h2>The bugs</h2>
-  <ul>
-    <li><code>PRINT .1+.2</code> &rarr; <code>.3</code><br>nine significant digits</li>
-    <li><code>HTAB 10: PRINT POS(0)</code> &rarr; <code>11</code><br>off by two</li>
-    <li><code>10 TOTAL=5</code> then <code>LIST</code><br>lists as <code>TO TAL = 5</code></li>
-    <li><code>LOAD ONERRFIX.BAS</code><br>the ONERR leak, and the
-        <code>CALL -3288</code> that pops it</li>
-  </ul>
+  <h2>Or type it yourself</h2>
+  <p class="note" style="margin:0 0 8px">Click the black screen first so it hears your keyboard.
+     Lower case is fine. Click a chip to have it typed for you:</p>
+  <div>
+    <button class="cmd" data-t='PRINT "HELLO"'>PRINT "HELLO"</button>
+    <button class="cmd" data-t='PRINT .1 + .2'>PRINT .1 + .2</button>
+    <button class="cmd" data-t='FOR I = 1 TO 5: PRINT I * I: NEXT'>FOR I = 1 TO 5 ...</button>
+    <button class="cmd" data-t='LIST'>LIST</button>
+    <button class="cmd" data-t='TEXT'>TEXT</button>
+  </div>
 
-  <h2>The IDE</h2>
-  <p style="margin:0 0 16px"><a href="idedemo.html" style="color:#7ddc7d">Open the
-     windowed front end</a> &mdash; menu bar, Machine pane, program listing.
-     The same 16-bit binary, in 80&times;43 text mode.</p>
+  <h2>Faithful bugs</h2>
+  <details><summary><code>PRINT .1+.2</code> says <code>.3</code></summary>
+    <p>Applesoft carried nine significant digits in its 5-byte floats,
+       so the answer really did come out clean. Nothing is rounded for show.</p></details>
+  <details><summary><code>HTAB 10: PRINT POS(0)</code> says <code>11</code></summary>
+    <p>Off by two, exactly as the ROM was.</p></details>
+  <details><summary><code>10 TOTAL=5</code> lists as <code>TO TAL = 5</code></summary>
+    <p>The tokenizer finds the keyword <code>TO</code> inside the variable name.
+       Real Applesoft programmers learned to avoid such names.</p></details>
+  <details><summary><code>ONERR</code> leaks memory</summary>
+    <p>Trap errors in a loop and the program dies with <code>?OUT OF MEMORY</code>
+       after exactly sixty of them. <code>LOAD ONERRFIX.BAS</code> shows the leak
+       and the classic <code>CALL -3288</code> workaround.</p></details>
 
-  <p class="note">Click the screen first so it takes the keyboard.
-     Typing is uppercase, as the Apple was.</p>
+  <h2>Graphics tips</h2>
+  <p class="note">Hi-res graphics hide the text screen, as the Apple did.
+     Type <code>TEXT</code> blind and press return to come back —
+     or just click another program.</p>
+
+  <h2>More</h2>
+  <p class="note" style="margin-top:0"><a href="idedemo.html">The windowed IDE</a> —
+     menus, an editor, and a Machine pane, in 80&times;43 text mode.<br>
+     <a href="https://github.com/keithadler/asoft">Source on GitHub</a></p>
 </aside>
+<div id="typing">typing&hellip;</div>
+
 <script>
-  Dos(document.getElementById("dos"), {
-    url: "asoft.jsdos",
-    // 80x25 text; let the canvas fill the frame rather than letterboxing hard
-    renderAspect: "4/3",
-    autoStart: true,
-    kiosk: true
+const PROGRAMS = [
+  ["SNAKE",   "A game. Steer with I J K M, quit with Q."],
+  ["MANDEL",  "The Mandelbrot set, banded by escape time."],
+  ["DRAGON",  "The dragon curve, drawn to fit."],
+  ["FERN",    "Barnsley's fern — four affine maps."],
+  ["JULIA",   "A Julia set, banded by escape time."],
+  ["SIERP",   "Sierpinski's triangle, by the chaos game."],
+  ["SPIRO",   "A spirograph curve that closes."],
+  ["CUBE",    "A rotating wireframe cube. Any key stops it."],
+  ["MOIRE",   "Interference — and the colour the display invents."],
+  ["LORES",   "All sixteen lo-res colours."],
+  ["HGRDEMO", "The hi-res colour rules themselves."],
+  ["HGRSHAP", "Shape tables: DRAW, XDRAW, ROT, SCALE."],
+  ["WIDE",    "Eighty columns, from the card in slot 3."],
+  ["TESTS",   "The compatibility checks this build is held to."],
+];
+
+const holder = document.getElementById("programs");
+for (const [name, desc] of PROGRAMS) {
+  const b = document.createElement("button");
+  b.className = "prog";
+  b.innerHTML = "<b>" + name + "</b><small>" + desc + "</small>";
+  b.addEventListener("click", () => runProgram(name));
+  holder.appendChild(b);
+}
+
+let emu = null, bootAt = 0;
+Dos(document.getElementById("dos"), {
+  url: "asoft.jsdos",
+  renderAspect: "4/3",
+  autoStart: true,
+  kiosk: true,
+  onEvent: (e, arg) => {
+    if (e === "ci-ready") { emu = arg; bootAt = Date.now(); window.__ci = arg; }
+  },
+});
+
+// --- typing keystrokes into the emulator ---------------------------------
+// js-dos v8 key codes are GLFW-style: letters/digits are their ASCII
+// uppercase, enter 257, left-shift 340, left-ctrl 341.
+const KBD = { ENTER: 257, SHIFT: 340, CTRL: 341 };
+const SHIFTED = { '"': "'", ':': ';', '+': '=', '*': '8', '(': '9', ')': '0',
+                  '!': '1', '#': '3', '$': '4', '%': '5', '?': '/', '<': ',', '>': '.' };
+function codeFor(ch) {
+  ch = ch.toUpperCase();
+  if (ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') return ch.charCodeAt(0);
+  const plain = { ' ': 32, "'": 39, ',': 44, '-': 45, '.': 46, '/': 47,
+                  ';': 59, '=': 61 };
+  return plain[ch];
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function press(code, ms = 24) {
+  emu.sendKeyEvent(code, true); await sleep(ms);
+  emu.sendKeyEvent(code, false); await sleep(ms);
+}
+async function typeText(text) {
+  for (const ch of text) {
+    if (ch === '\n') { await press(KBD.ENTER, 40); continue; }
+    const sh = SHIFTED[ch];
+    if (sh !== undefined) {
+      emu.sendKeyEvent(KBD.SHIFT, true); await sleep(12);
+      await press(codeFor(sh));
+      emu.sendKeyEvent(KBD.SHIFT, false); await sleep(12);
+    } else {
+      const c = codeFor(ch);
+      if (c !== undefined) await press(c);
+    }
+  }
+}
+window.__type = typeText;
+let busy = false;
+async function withBadge(fn) {
+  if (!emu || busy) return;
+  busy = true;
+  try { emu.resume(); } catch (_) {}
+  const badge = document.getElementById("typing");
+  badge.classList.add("on");
+  const up = Date.now() - bootAt;
+  if (up < 3000) await sleep(3000 - up); // let the ] prompt appear first
+  try { await fn(); } finally { badge.classList.remove("on"); busy = false; }
+}
+function typeLines(s) { return withBadge(() => typeText(s)); }
+function runProgram(name) {
+  return withBadge(async () => {
+    // stop anything running, restore the text screen, then load and go
+    emu.sendKeyEvent(KBD.CTRL, true); await sleep(12);
+    await press(67); // C
+    emu.sendKeyEvent(KBD.CTRL, false); await sleep(60);
+    await press(KBD.ENTER, 40);
+    await typeText("TEXT\nLOAD " + name + ".BAS\nRUN\n");
   });
+}
+document.querySelectorAll("button.cmd").forEach(b =>
+  b.addEventListener("click", () => typeLines(b.dataset.t + "\n")));
+
+// deep link: console.html?run=SNAKE
+const want = new URLSearchParams(location.search).get("run");
+if (want) {
+  const t = setInterval(() => {
+    if (emu) { clearInterval(t); runProgram(want.toUpperCase().replace(/[^A-Z0-9]/g, "")); }
+  }, 200);
+}
 </script>
 </body>
 </html>

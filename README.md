@@ -3,6 +3,9 @@
 An Applesoft interpreter that keeps the ROM's bugs on purpose, with a console
 front end and a Turbo Vision one, running in the browser under js-dos.
 
+**Try it: <https://keithadler.github.io/asoft/>** — one click loads and runs
+any of the sample programs.
+
 ```
 ]LOAD TESTS.BAS
 ]RUN

@@ -2,63 +2,123 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Applesoft BASIC for DOS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Applesoft BASIC in your browser</title>
+<meta name="description" content="The Apple II's BASIC — bugs and all — rebuilt as a 16-bit DOS program, running in your browser. Click a program and it runs.">
 <style>
   :root { color-scheme: dark; }
-  html, body { height: 100%; margin: 0; background: #101010; color: #b9b9b9;
-               font: 14px/1.6 ui-monospace, "SF Mono", Menlo, monospace; }
-  body { display: flex; align-items: center; justify-content: center; padding: 24px; }
-  main { max-width: 760px; width: 100%; }
-  h1 { font-size: 20px; color: #eee; margin: 0 0 4px; letter-spacing: .01em; }
-  p.sub { color: #777; margin: 0 0 28px; }
-  .row { display: flex; gap: 18px; flex-wrap: wrap; }
-  a.card { flex: 1 1 320px; display: block; text-decoration: none; color: inherit;
-           background: #181818; border: 1px solid #2b2b2b; border-radius: 6px;
-           padding: 20px 22px; transition: border-color .15s, background .15s; }
-  a.card:hover { border-color: #7ddc7d; background: #1d1d1d; }
-  a.card h2 { font-size: 15px; color: #7ddc7d; margin: 0 0 8px; }
-  a.card p { margin: 0; color: #8d8d8d; font-size: 13px; }
-  pre { background: #181818; border: 1px solid #2b2b2b; border-radius: 6px;
-        padding: 14px 16px; overflow-x: auto; color: #9d9d9d; font-size: 13px;
-        margin: 28px 0 0; }
-  .note { color: #666; font-size: 12px; margin-top: 22px; }
-  code { color: #7ddc7d; }
+  html, body { margin: 0; background: #0c0c0e; color: #c2c2c8;
+               font: 15px/1.65 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  main { max-width: 880px; margin: 0 auto; padding: 48px 24px 72px; }
+  a { color: #7ddc7d; }
+  header h1 { font-size: 28px; color: #f2f2f2; margin: 0 0 6px; letter-spacing: .01em; }
+  header p.tag { color: #8a8a92; margin: 0 0 10px; font-size: 15px; }
+  .prompt { color: #7ddc7d; }
+  .hero-cards { display: flex; gap: 16px; flex-wrap: wrap; margin: 30px 0 10px; }
+  a.big { flex: 1 1 300px; display: block; text-decoration: none; color: inherit;
+          background: #15151a; border: 1px solid #2b2b33; border-radius: 10px;
+          padding: 20px 22px; transition: border-color .15s, transform .15s; }
+  a.big:hover { border-color: #7ddc7d; transform: translateY(-1px); }
+  a.big h2 { font-size: 16px; color: #7ddc7d; margin: 0 0 8px; }
+  a.big p { margin: 0; color: #8d8d95; font-size: 13.5px; }
+  a.big .go { display: inline-block; margin-top: 12px; color: #e8e8e8; font-size: 13px;
+              border: 1px solid #3a3a44; border-radius: 6px; padding: 4px 12px; }
+  a.big:hover .go { border-color: #7ddc7d; color: #7ddc7d; }
+  h2.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .1em;
+           color: #77777f; margin: 44px 0 14px; font-weight: 600; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+             gap: 10px; }
+  a.card { display: block; text-decoration: none; color: inherit; background: #15151a;
+           border: 1px solid #26262c; border-radius: 8px; padding: 12px 14px;
+           transition: border-color .12s, background .12s; }
+  a.card:hover { border-color: #7ddc7d; background: #171d17; }
+  a.card b { color: #7ddc7d; font-weight: 600; font-size: 13.5px; }
+  a.card span { display: block; color: #8a8a92; font-size: 12.5px; margin-top: 2px; }
+  .why { background: #15151a; border: 1px solid #26262c; border-radius: 10px;
+         padding: 18px 22px; margin-top: 10px; }
+  .why p { margin: 0 0 12px; font-size: 14px; color: #a8a8b0; }
+  .why p:last-child { margin-bottom: 0; }
+  code { color: #7ddc7d; background: #1a221a; border-radius: 4px; padding: 1px 5px;
+         font-size: .92em; }
+  ul.tips { margin: 0; padding-left: 20px; color: #8a8a92; font-size: 13.5px; }
+  ul.tips li { margin-bottom: 7px; }
+  footer { margin-top: 52px; color: #66666e; font-size: 12.5px;
+           border-top: 1px solid #1e1e24; padding-top: 18px; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Applesoft BASIC for DOS</h1>
-  <p class="sub">The ROM's bugs, on purpose. A 16-bit DOS binary, running here under DOSBox.</p>
+<header>
+  <h1><span class="prompt">]</span>Applesoft BASIC, in your browser</h1>
+  <p class="tag">The Apple II's BASIC — bugs and all — rebuilt as a real 16-bit DOS
+     program and run here under DOSBox. Nothing to install. Click a program below
+     and it loads and runs itself.</p>
+</header>
 
-  <div class="row">
-    <a class="card" href="console.html">
-      <h2>Console &rarr;</h2>
-      <p>Just the <code>]</code> prompt, the way the reference build starts.
-         Prints no banner, because the binary it is checked against prints none.</p>
-    </a>
-    <a class="card" href="ide.html">
-      <h2>IDE &rarr;</h2>
-      <p>The windowed front end: menu bar, program listing, and a Machine pane
-         showing zero page, the control stack and which bugs are switched on.</p>
-    </a>
-  </div>
+<div class="hero-cards">
+  <a class="big" href="console.html">
+    <h2>Start typing BASIC</h2>
+    <p>The classic <code>]</code> prompt, with a helper panel beside it:
+       one-click sample programs, commands to try, and the famous bugs explained.</p>
+    <span class="go">Open the console &rarr;</span>
+  </a>
+  <a class="big" href="idedemo.html">
+    <h2>Open the IDE</h2>
+    <p>A windowed front end in 80&times;43 text mode — menu bar, editor,
+       program listing, and a Machine pane showing zero page and the control stack.
+       F5 runs, F10 opens the menus.</p>
+    <span class="go">Open the IDE &rarr;</span>
+  </a>
+</div>
 
-  <pre>]LOAD MANDEL.BAS       banded by escape time, in four colours
-]LOAD SIERP.BAS        Sierpinski, by the chaos game
-]LOAD SPIRO.BAS        hypotrochoids
-]LOAD MOIRE.BAS        interference, and the colour the display invents
-]LOAD HGRDEMO.BAS      the colour rules themselves
-]LOAD HGRSHAP.BAS      shape tables: DRAW, XDRAW, ROT, SCALE
-]LOAD LORES.BAS        all sixteen lo-res colours
-]LOAD SNAKE.BAS        a game: I J K M to steer, Q to quit
-]RUN</pre>
+<h2 class="sec">One click, and it runs</h2>
+<div class="gallery">
+  <a class="card" href="console.html?run=SNAKE"><b>SNAKE</b><span>A game. Steer with I J K M, quit with Q.</span></a>
+  <a class="card" href="console.html?run=MANDEL"><b>MANDEL</b><span>The Mandelbrot set, in four colours.</span></a>
+  <a class="card" href="console.html?run=DRAGON"><b>DRAGON</b><span>The dragon curve, drawn to fit.</span></a>
+  <a class="card" href="console.html?run=FERN"><b>FERN</b><span>Barnsley's fern — four affine maps.</span></a>
+  <a class="card" href="console.html?run=JULIA"><b>JULIA</b><span>A Julia set, banded by escape time.</span></a>
+  <a class="card" href="console.html?run=SIERP"><b>SIERP</b><span>Sierpinski's triangle, by the chaos game.</span></a>
+  <a class="card" href="console.html?run=SPIRO"><b>SPIRO</b><span>A spirograph curve that closes.</span></a>
+  <a class="card" href="console.html?run=CUBE"><b>CUBE</b><span>A rotating wireframe cube.</span></a>
+  <a class="card" href="console.html?run=MOIRE"><b>MOIRE</b><span>Interference — and an invented colour.</span></a>
+  <a class="card" href="console.html?run=LORES"><b>LORES</b><span>All sixteen lo-res colours.</span></a>
+  <a class="card" href="console.html?run=HGRDEMO"><b>HGRDEMO</b><span>The hi-res colour rules themselves.</span></a>
+  <a class="card" href="console.html?run=HGRSHAP"><b>HGRSHAP</b><span>Shape tables: DRAW, XDRAW, ROT, SCALE.</span></a>
+</div>
 
-  <p class="note">In the IDE the Samples menu loads any of these in one pick.</p>
+<h2 class="sec">Why the bugs are the point</h2>
+<div class="why">
+  <p>Ask it for <code>PRINT .1 + .2</code> and it says <code>.3</code> — not because
+     anything is rounded for show, but because Applesoft carried nine significant
+     digits in its 5-byte floats, and that is what nine digits gives you.</p>
+  <p><code>HTAB 10 : PRINT POS(0)</code> answers <code>11</code>, which is wrong by
+     two and is exactly what the ROM did. Name a variable <code>TOTAL</code> and
+     <code>LIST</code> shows it as <code>TO TAL</code>, because the tokenizer finds
+     the keyword hiding inside. Trap errors in a loop and <code>ONERR</code> leaks a
+     stack frame every time, killing the program after exactly sixty of them.</p>
+  <p>All of it is reproduced deliberately, verified against the reference build,
+     and each misfeature can be switched off individually. This is an act of
+     preservation, not nostalgia for its own sake.</p>
+</div>
 
-  <p class="note">Click the screen before typing, so it takes the keyboard.
-     Lower case is fine: keywords and variable names fold to upper case, while
-     what is inside quotes keeps the case you typed.
-     In the IDE: F5 run, F9 list, F10 menus, Ctrl-Q quit.</p>
+<h2 class="sec">Good to know</h2>
+<ul class="tips">
+  <li>Click the black screen before typing, so it takes your keyboard.</li>
+  <li>Lower case is fine — keywords fold to upper case; text inside quotes keeps
+      the case you typed.</li>
+  <li>Hi-res graphics hide the text screen, as the Apple did. Type
+      <code>TEXT</code> and press return to come back.</li>
+  <li><code>Ctrl-C</code> stops a running program.</li>
+  <li>In the IDE: <code>F5</code> run, <code>F9</code> list, <code>F10</code> menus,
+      and the Samples menu loads any demo in one pick.</li>
+</ul>
+
+<footer>
+  Portable C89, compiled to a 16-bit MZ executable with Open Watcom, byte-identical
+  output to the host build. <a href="https://github.com/keithadler/asoft">Source and
+  the full story on GitHub</a> &middot; MIT licence.
+</footer>
 </main>
 </body>
 </html>
