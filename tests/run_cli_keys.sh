@@ -13,7 +13,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 strobe=build/cli-keys.out
-printf '10 FOR T = 1 TO 4000000\n20 K = PEEK(-16384)\n30 IF K > 127 THEN 60\n40 NEXT T\n50 PRINT "NO KEY SEEN": END\n60 POKE -16368,0: PRINT "GOT ";CHR$(K-128)\n70 END\nRUN\nX\nWAIT:15\n' \
+printf '10 FOR T = 1 TO 4000\n20 K = PEEK(-16384)\n30 IF K > 127 THEN 60\n40 NEXT T\n50 PRINT "NO KEY SEEN": END\n60 POKE -16368,0: PRINT "GOT ";CHR$(K-128)\n70 END\nRUN\nX\nWAIT:15\n' \
     | python3 tools/ptyrun.py --settle 0.4 -- ./build/asoft > "$strobe" 2>&1
 
 if ! grep -aq "GOT X" "$strobe"; then

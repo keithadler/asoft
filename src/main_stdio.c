@@ -10,9 +10,11 @@
 #include "gfx.h"
 #include "host.h"
 #include "interp.h"
+#include "pace.h"
 #include "screen.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static void sink(char ch)
@@ -118,7 +120,9 @@ static void usage(const char *argv0)
     fprintf(stderr,
             "usage: %s [-n] [-r] [program.bas]\n"
             "  -n   disable the deliberate ROM bugs\n"
-            "  -r   run the program straight away, without waiting for RUN\n",
+            "  -r   run the program straight away, without waiting for RUN\n"
+            "  -f   run flat out, instead of at the speed the machine ran at\n"
+            "  -s N run at N statements a second (0 is the same as -f)\n",
             argv0);
 }
 
@@ -130,7 +134,11 @@ int main(int argc, char **argv)
     int i;
 
     for (i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-r") == 0) {
+        if (strcmp(argv[i], "-f") == 0) {
+            pace_set_rate(0);
+        } else if (strcmp(argv[i], "-s") == 0 && i + 1 < argc) {
+            pace_set_rate(atol(argv[++i]));
+        } else if (strcmp(argv[i], "-r") == 0) {
             autorun = 1;
         } else if (strcmp(argv[i], "-n") == 0) {
             int b;

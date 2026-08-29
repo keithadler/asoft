@@ -10,6 +10,7 @@
 #include "../src/gfx.h"
 #include "../src/host.h"
 #include "../src/interp.h"
+#include "../src/pace.h"
 #include "../src/screen.h"
 
 #include <stdio.h>
@@ -79,6 +80,7 @@ int main(int argc, char **argv)
 
     scr_init(sink);
     it_init();
+    pace_set_rate(0);   /* rendering a picture, not playing a game */
     if (!it_load(argv[1])) { fprintf(stderr, "cannot load %s\n", argv[1]); return 1; }
     it_line("RUN");
 

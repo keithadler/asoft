@@ -8,6 +8,7 @@
 #include "bugs.h"
 #include "host.h"
 #include "interp.h"
+#include "pace.h"
 #include "screen.h"
 #include "tui.h"
 #include <stdlib.h>
@@ -117,6 +118,7 @@ static void usage(const char *argv0)
     fprintf(stderr,
             "usage: %s [-n] [-dump FILE] [program.bas]\n"
             "  -n         disable the deliberate ROM bugs\n"
+            "  -f         run flat out, not at the speed the machine ran at\n"
             "  -dump F    draw the screen once, write it to F as text, exit\n"
             "  -screen F  keep running, rewriting F after every redraw\n",
             argv0);
@@ -135,6 +137,8 @@ int main(int argc, char **argv)
             screen = argv[++i];
         } else if (strcmp(argv[i], "-dump") == 0 && i + 1 < argc) {
             dump = argv[++i];
+        } else if (strcmp(argv[i], "-f") == 0) {
+            pace_set_rate(0);
         } else if (strcmp(argv[i], "-n") == 0) {
             memset(bug_enabled, 0, sizeof(bug_enabled));
         } else if (argv[i][0] == '-' && argv[i][1]) {

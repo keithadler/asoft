@@ -36,6 +36,9 @@ ANSWERS = [b'1', b'Y', b'A', b'2', b'N', b'5', b'', b'3', b'TEST', b'10']
 FEED = b'\n'.join(ANSWERS * 200) + b'\n'
 
 def run(binary, path, seconds, extra=(), feed=False):
+    # Flat out: this is looking for programs that fail to parse or run, and
+    # the machine's own pace would just mean fewer of them finish in time.
+    extra = ('-f',) + tuple(extra)
     try:
         p = subprocess.run([binary] + list(extra) + ['-r', path],
                            input=FEED if feed else None,

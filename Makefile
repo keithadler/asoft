@@ -1,6 +1,9 @@
 # Host build. build-dos.sh cross-compiles the same sources for 16-bit DOS.
 CC      ?= cc
-CFLAGS  ?= -std=c89 -Wall -Wextra -O2
+# -Wdeclaration-after-statement is not in -Wall or -Wextra, and the DOS
+# compiler is stricter than clang about it: without this, a declaration in
+# the wrong place builds fine here and fails only when cross-compiling.
+CFLAGS  ?= -std=c89 -Wall -Wextra -Wdeclaration-after-statement -O2
 LDLIBS  ?= -lm
 
 # display_dos.c and tui_dos.c are for the 16-bit DOS build only; see

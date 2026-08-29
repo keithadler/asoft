@@ -5,6 +5,7 @@
 #include "gfx.h"
 #include "host.h"
 #include "mbf.h"
+#include "pace.h"
 #include "screen.h"
 #include "shape.h"
 #include "token.h"
@@ -903,6 +904,9 @@ static void exec_line(void)
         if (!*ip)
             return;
         if_fallthrough = 0;
+        /* Hold the machine's speed. A program's own timing loops are the only
+         * clock Applesoft has, so this is what makes them mean anything. */
+        pace_statement();
         exec_statement();
         if (jumped || quitting)
             return;
@@ -1431,6 +1435,10 @@ static void exec_statement(void)
 
     case T_RUN: {
         a2addr start;
+
+        /* Start the clock fresh, so a program's timing is measured from when
+         * it started rather than from whenever the session did. */
+        pace_reset();
         if (isdigit((unsigned char)*ip)) {
             start = a2_prog_find(read_lineno());
             if (!start)

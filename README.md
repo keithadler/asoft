@@ -316,11 +316,29 @@ running program has to see a key pressed while it runs. The game test asks for
 Q, which ends differently from running into a wall, so QUIT rather than GAME
 OVER is what proves the key arrived.
 
-One thing to know about SNAKE.BAS: a `FOR` loop is the only clock Applesoft
-has, so line 47 sets the pace and the right number depends on the machine. It
-ships at 600000, which is about right for the native build. Under DOSBox --
-the browser, or a real DOS machine -- the interpreter runs a good deal slower,
-so lower it: 2000 is roughly the same speed there.
+## Speed
+
+The interpreter runs at the speed the machine ran at: about a thousand
+statements a second, which puts `FOR I=1 TO 1000: NEXT` at a second and a
+half, the same as an Apple II.
+
+That is not nostalgia. Applesoft has no clock, so a program that wants to wait
+counts to a number in a `FOR` loop, and how long that takes is a property of
+the hardware. Run it flat out and a game crosses the screen before you can
+press a key, and the delay constant that made it playable becomes meaningless
+-- right for one machine, wrong for every other. Pacing the interpreter is
+what lets a program's own timing loops mean the same thing on a laptop, under
+DOSBox, and on a real DOS machine. SNAKE.BAS says `SP = 100` and that is
+simply how long it waits, everywhere.
+
+    ./build/asoft -f program.bas       # flat out
+    ./build/asoft -s 5000 program.bas  # five thousand statements a second
+
+Anything compute-bound wants `-f`: the Mandelbrot is a couple of hundred
+thousand statements, which is four minutes at the machine's own pace, and was
+four minutes on the machine too. `build/hgrdump` and `build/textdump` are
+unthrottled already, since they are rendering a picture rather than pretending
+to be a machine.
 
 `build/hgrdump program.bas out.bmp [scale]` renders a program's graphics page
 to a file, which is how the colour rules are checked without squinting at a

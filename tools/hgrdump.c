@@ -13,6 +13,7 @@
 #include "../src/hires.h"
 #include "../src/host.h"
 #include "../src/interp.h"
+#include "../src/pace.h"
 #include "../src/screen.h"
 
 #include <stdio.h>
@@ -47,6 +48,7 @@ int main(int argc, char **argv)
 
     scr_init(sink);
     it_init();
+    pace_set_rate(0);   /* rendering a picture, not playing a game */
     disp_init();
     gfx_on_change(disp_touch);
 

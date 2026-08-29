@@ -17,6 +17,7 @@
 #include "../src/host.h"
 #include "../src/interp.h"
 #include "../src/panes.h"
+#include "../src/pace.h"
 #include "../src/screen.h"
 #include "../src/token.h"
 
@@ -146,6 +147,7 @@ int main(int argc, char **argv)
     }
     scr_init(sink);
     it_init();
+    pace_set_rate(0);   /* rendering a picture, not playing a game */
 
     sink('A'); /* banner, the way the real front end greets you */
     {

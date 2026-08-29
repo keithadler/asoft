@@ -35,7 +35,7 @@ mkdir -p web/bundle
 # -ml       large model: all pointers far, needed for the 64K memory image
 # -k16384   16K stack; the recursive-descent evaluator wants more than the 4K default
 CORE="src/mbf.c src/token.c src/a2mem.c src/errs.c src/bugs.c src/gfx.c \
-      src/hires.c src/shape.c src/screen.c src/panes.c src/interp.c"
+      src/hires.c src/shape.c src/pace.c src/screen.c src/panes.c src/interp.c"
 
 # The console build, with VGA graphics.
 wcl -bcl=dos -ml -q -k16384 -fe=$OUT \
