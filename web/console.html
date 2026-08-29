@@ -147,9 +147,10 @@ Dos(document.getElementById("dos"), {
 });
 
 // --- typing keystrokes into the emulator ---------------------------------
-// js-dos v8 key codes are GLFW-style: letters/digits are their ASCII
-// uppercase, enter 257, left-shift 340, left-ctrl 341.
-const KBD = { ENTER: 257, SHIFT: 340, CTRL: 341 };
+// js-dos v8 key codes are GLFW-style for printables (letters/digits are
+// their ASCII uppercase), but only the RIGHT modifiers exist in its table:
+// rightshift 344, rightctrl 345. The left-hand codes are silently dropped.
+const KBD = { ENTER: 257, SHIFT: 344, CTRL: 345 };
 const SHIFTED = { '"': "'", ':': ';', '+': '=', '*': '8', '(': '9', ')': '0',
                   '!': '1', '#': '3', '$': '4', '%': '5', '?': '/', '<': ',', '>': '.' };
 function codeFor(ch) {
@@ -160,7 +161,22 @@ function codeFor(ch) {
   return plain[ch];
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-async function press(code, ms = 24) {
+// Don't type until the DOS side has actually launched ASOFT and had a
+// moment to print its ] prompt — on a cold load that is well after ci-ready.
+let promptReady = false;
+async function waitForPrompt() {
+  if (promptReady) return;
+  for (let i = 0; i < 150; i++) {
+    try {
+      const prog = await emu.getRunningProgram();
+      if (prog && prog.toUpperCase().includes("ASOFT")) break;
+    } catch (_) {}
+    await sleep(200);
+  }
+  await sleep(1500);
+  promptReady = true;
+}
+async function press(code, ms = 32) {
   emu.sendKeyEvent(code, true); await sleep(ms);
   emu.sendKeyEvent(code, false); await sleep(ms);
 }
@@ -186,9 +202,8 @@ async function withBadge(fn) {
   try { emu.resume(); } catch (_) {}
   const badge = document.getElementById("typing");
   badge.classList.add("on");
-  const up = Date.now() - bootAt;
-  if (up < 3000) await sleep(3000 - up); // let the ] prompt appear first
-  try { await fn(); } finally { badge.classList.remove("on"); busy = false; }
+  try { await waitForPrompt(); await fn(); }
+  finally { badge.classList.remove("on"); busy = false; }
 }
 function typeLines(s) { return withBadge(() => typeText(s)); }
 function runProgram(name) {
