@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>asoft ide</title>
+<link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
+<script src="https://v8.js-dos.com/latest/js-dos.js"></script>
+<style>html,body{height:100%;margin:0;background:#000;overflow:hidden}
+ #dos{position:absolute;left:0;top:0;width:800px;height:600px}
+ #mirror{position:absolute;left:0;top:0;width:800px;height:600px;
+   image-rendering:pixelated;background:#000;pointer-events:none}</style>
+</head><body>
+<div id="dos"></div><canvas id="mirror" width="320" height="200"></canvas>
+<script>
+Dos(document.getElementById("dos"), { url: "idedemo.jsdos", autoStart: true, kiosk: true,
+  onEvent: (e, ci) => { if (ci) window.__ci = ci; } });
+// js-dos draws through WebGL without preserveDrawingBuffer, so the canvas
+// reads back blank. Mirror each frame onto a 2D canvas to make it capturable.
+window.__mirror = async function () {
+  if (!window.__ci) return "no ci";
+  const img = await window.__ci.screenshot();
+  const m = document.getElementById("mirror");
+  if (m.width !== img.width || m.height !== img.height) { m.width = img.width; m.height = img.height; }
+  m.getContext("2d").putImageData(img, 0, 0);
+  return img.width + "x" + img.height;
+};
+setInterval(() => window.__mirror(), 500);
+</script></body></html>

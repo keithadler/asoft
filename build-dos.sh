@@ -29,14 +29,22 @@ test -x "$WATCOM/$HOSTBIN/wcl" || {
 export PATH="$WATCOM/$HOSTBIN:$WATCOM/binl:$PATH"
 
 OUT=web/bundle/ASOFT.EXE
+IDE=web/bundle/ASOFTIDE.EXE
 mkdir -p web/bundle
 
 # -ml       large model: all pointers far, needed for the 64K memory image
 # -k16384   16K stack; the recursive-descent evaluator wants more than the 4K default
+CORE="src/mbf.c src/token.c src/a2mem.c src/errs.c src/bugs.c src/gfx.c \
+      src/hires.c src/shape.c src/screen.c src/panes.c src/interp.c"
+
+# The console build, with VGA graphics.
 wcl -bcl=dos -ml -q -k16384 -fe=$OUT \
-    src/mbf.c src/token.c src/a2mem.c src/errs.c src/bugs.c src/gfx.c \
-    src/hires.c src/shape.c src/display_dos.c src/screen.c src/panes.c src/interp.c \
-    src/main_stdio.c
+    $CORE src/display_dos.c src/main_stdio.c
+
+# The windowed build. Text mode only: it does not wire the graphics display,
+# so HGR still writes page memory but nothing switches the screen over.
+wcl -bcl=dos -ml -q -k16384 -fe=$IDE \
+    $CORE src/tui_dos.c src/ide.c src/main_ide.c
 
 rm -f *.obj src/*.obj 2>/dev/null || true
-ls -l $OUT
+ls -l $OUT $IDE

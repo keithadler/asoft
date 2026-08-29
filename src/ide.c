@@ -495,6 +495,14 @@ int host_break(void)
 
 int ide_quitting(void) { return quitting; }
 
+/* Draw the whole layout once, without waiting for a key. */
+void ide_draw_once(void)
+{
+    draw_all(-1);
+    tui_cursor(-1, -1);
+    tui_flush();
+}
+
 void ide_start(void)
 {
     apple_clear();

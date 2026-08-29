@@ -63,6 +63,11 @@ void tui_cursor(int x, int y);
 
 void tui_flush(void);
 
+/* The glyph currently at a cell, as one of the G_* codes or a character.
+ * Used to dump a drawn screen as text, which is how the layout is checked on
+ * DOS -- there is no pty there to read an escape stream back out of. */
+int  tui_cell(int x, int y);
+
 /* Keys. Ordinary characters come back as themselves; the rest as one of
  * these, above anything a byte can hold. */
 #define K_UP     0x100

@@ -128,6 +128,13 @@ void tui_box(int x, int y, int w, int h, const char *title, unsigned char attr)
     }
 }
 
+int tui_cell(int x, int y)
+{
+    if (x < 0 || x >= TUI_W || y < 0 || y >= TUI_H)
+        return ' ';
+    return buf.ch[y][x];
+}
+
 void tui_cursor(int x, int y) { cur_x = x; cur_y = y; }
 
 void tui_flush(void)
