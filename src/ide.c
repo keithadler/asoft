@@ -17,12 +17,14 @@
 #include "host.h"
 #include "interp.h"
 #include "hires.h"
+#include "pace.h"
 #include "panes.h"
 #include "screen.h"
 #include "token.h"
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 
 /* The layout owes more to a modern terminal application than to 1990: no
  * frames, no desktop pattern, sections separated by space and a coloured
@@ -360,21 +362,27 @@ static const char *help_items[] = { "About", 0 };
 /* The programs that ship in the bundle, so they are one pick away rather
  * than something you have to know the name of. */
 static const char *sample_items[] = {
-    "Tests - compatibility suite",
+    "Mandelbrot - banded by escape time",
+    "Julia set - a dendrite",
+    "Barnsley fern - four affine maps",
+    "Dragon curve - fitted to the screen",
+    "Sierpinski - the chaos game",
+    "Spirograph - hypotrochoids",
     "Moire - interference",
-    "Spirograph",
-    "Sierpinski",
-    "Mandelbrot",
-    "Hi-res colour demo",
-    "Shape tables",
-    "Lo-res colours",
-    "Snake - a game",
-    "ONERR leak",
+    "Rotating cube - press a key",
+    "Snake - a game, I J K M to steer",
+    "Shape tables - DRAW, ROT, SCALE",
+    "Hi-res colour rules",
+    "Lo-res, all sixteen colours",
+    "Eighty columns - PR#3",
+    "Compatibility suite",
+    "The ONERR leak",
     0
 };
 static const char *sample_file[] = {
-    "TESTS.BAS", "MOIRE.BAS", "SPIRO.BAS", "SIERP.BAS", "MANDEL.BAS",
-    "HGRDEMO.BAS", "HGRSHAP.BAS", "LORES.BAS", "SNAKE.BAS", "ONERRFIX.BAS"
+    "MANDEL.BAS", "JULIA.BAS", "FERN.BAS", "DRAGON.BAS", "SIERP.BAS",
+    "SPIRO.BAS", "MOIRE.BAS", "CUBE.BAS", "SNAKE.BAS", "HGRSHAP.BAS",
+    "HGRDEMO.BAS", "LORES.BAS", "WIDE.BAS", "TESTS.BAS", "ONERRFIX.BAS"
 };
 
 static const char **menu_items(int m)
@@ -1044,6 +1052,34 @@ int host_pollkey(void)
     return 0;
 }
 
+/* Repaint while a program runs, so graphics appear as they are drawn and
+ * printed text appears as it is printed -- the machine's display did not wait
+ * for the program to finish, and neither should this. The interpreter calls
+ * host_break between statements, which makes it the heartbeat; actually
+ * redrawing every statement would cost more than the statement, so it is
+ * rate-limited to roughly a screen refresh. */
+static long last_paint_us;
+
+static long paint_now_us(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    return (long)tv.tv_sec * 1000000L + (long)tv.tv_usec;
+}
+
+static void live_repaint(void)
+{
+    long now = paint_now_us();
+
+    if (now - last_paint_us < 33000L)
+        return;
+    last_paint_us = now;
+    draw_all(-1);
+    tui_cursor(-1, -1);
+    tui_flush();
+    screen_snapshot();
+}
+
 int host_break(void)
 {
     /* Poll without blocking, so a long FOR loop can still be interrupted --
@@ -1056,6 +1092,7 @@ int host_break(void)
         else
             keyq_put(k);
     }
+    live_repaint();
     if (break_seen) { break_seen = 0; return 1; }
     return 0;
 }

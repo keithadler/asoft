@@ -285,21 +285,32 @@ between walks a distorted version of the shape that depends on the scale.
 
 ### Programs
 
-Ten ship in `web/bundle`, and the IDE's Samples menu loads any of them in one
-pick. From a shell:
+Fifteen ship in `web/bundle`, and the IDE's Samples menu loads any of them in
+one pick. Most want `-f`; see Speed below. From a shell:
 
-    ./build/asoft -r web/bundle/MANDEL.BAS     # banded by escape time
-    ./build/asoft -r web/bundle/SIERP.BAS      # Sierpinski, by the chaos game
-    ./build/asoft -r web/bundle/SPIRO.BAS      # hypotrochoids
-    ./build/asoft -r web/bundle/MOIRE.BAS      # interference
-    ./build/asoft -r web/bundle/HGRDEMO.BAS    # the colour rules themselves
-    ./build/asoft -r web/bundle/HGRSHAP.BAS    # scale, rotation, XDRAW, collisions
-    ./build/asoft -r web/bundle/LORES.BAS      # all sixteen lo-res colours
+    ./build/asoft -f -r web/bundle/MANDEL.BAS  # banded by escape time
+    ./build/asoft -f -r web/bundle/JULIA.BAS   # a dendrite, same banding
+    ./build/asoft -f -r web/bundle/FERN.BAS    # Barnsley, four affine maps
+    ./build/asoft -f -r web/bundle/DRAGON.BAS  # turns taken from the step number
+    ./build/asoft -f -r web/bundle/SIERP.BAS   # Sierpinski, by the chaos game
+    ./build/asoft -f -r web/bundle/SPIRO.BAS   # hypotrochoids
+    ./build/asoft -f -r web/bundle/MOIRE.BAS   # interference
+    ./build/asoft -f -r web/bundle/CUBE.BAS    # a rotating wireframe
+    ./build/asoft -f -r web/bundle/WIDE.BAS    # eighty columns, from PR#3
     ./build/asoft -r web/bundle/SNAKE.BAS      # I J K M to steer, Q to quit
 
-Mandelbrot in particular is worth looking at: it is banded by escape time into
-the four hi-res colours, which is exactly the palette Apple II fractal art of
-the period had to work with.
+Mandelbrot and Julia are banded by escape time into the four hi-res colours,
+which is exactly the palette Apple II fractal art of the period had to work
+with. The dragon curve walks itself twice -- once to find its size, once to
+draw it scaled to fit -- so it fills the screen whatever order you give it.
+
+Two of them are worth reading rather than only running. JULIA.BAS carries a
+comment about why its row variable is `YY` and not `ZY0`: only two characters
+of a name are significant, so `ZY0` *is* `ZY`, and each row would eat its own
+starting value. CUBE.BAS explains why its eye is six units back rather than
+four -- a rotated unit cube reaches SQR(3), and any closer the perspective
+divide throws a corner off the screen and Applesoft stops with ILLEGAL
+QUANTITY.
 
 ### The keyboard, for games
 
@@ -350,3 +361,20 @@ screen. Type `TEXT` blind and press return to get back. The terminal build
 does not do this -- it has only one screen, and hiding the prompt there would
 just look broken.
 
+## Licence
+
+MIT; see [LICENSE](LICENSE).
+
+Two things in the tree are not mine to relicense, and are worth knowing about
+before publishing:
+
+- `reference/ASOFT-watcom-reference.EXE` is the compiled binary this is
+  checked against, from the original archive. Everything in `tools/capture`
+  exists to run it and compare, so removing it costs the capture tests --
+  they skip rather than fail without it.
+- The corpus of third-party Applesoft that `tools/corpus.py` runs is *not* in
+  this repository, deliberately: it is other people's programs under their own
+  licences. Clone them wherever you like and point the tool at them.
+
+The character set in `src/applefont.c` is authored to the Apple's 5x7-in-7x8
+geometry rather than copied: the real character ROM is still Apple's.
