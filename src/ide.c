@@ -16,6 +16,7 @@
 #include "bugs.h"
 #include "host.h"
 #include "interp.h"
+#include "hires.h"
 #include "panes.h"
 #include "screen.h"
 #include "token.h"
@@ -32,10 +33,15 @@
 #define CHIP_Y      1
 #define HEAD_Y      3
 
-#define APPLE_W     40
+#define APPLE_W     80        /* the widest it gets; PR#3 asks for all of it */
 #define APPLE_H     24
 #define APPLE_X     1
 #define APPLE_Y     4
+
+/* Graphics need room, and so does an eighty-column screen, so the Apple
+ * window takes the whole width for either and the Machine pane stands down
+ * until it is finished. */
+#define GFX_ROWS    (TUI_H - 2 - APPLE_Y)
 
 #define MACH_X      44
 #define MACH_Y      4
@@ -63,6 +69,12 @@
 #define A_EDIT   ATTR(C_BRIGHT, C_SEL)
 
 static char cells[APPLE_H][APPLE_W];
+
+/* How wide the Apple screen is right now, and whether it has the whole
+ * window: forty columns leaves room for the Machine pane beside it, eighty
+ * or a graphics mode does not. */
+static int apple_cols(void) { return scr_cols(); }
+static int apple_wide(void) { return scr_cols() > 40 || gfx_mode() != GFX_TEXT; }
 static int  arow, acol;               /* where output has reached */
 static int  prog_top;                 /* first program line shown */
 static char input[256];
@@ -149,6 +161,19 @@ static void apple_clear(void)
     arow = acol = 0;
 }
 
+/* The hi-res palette, in the colours this front end has. */
+static unsigned char hires_colour(int idx)
+{
+    switch (idx - PAL_HIRES) {
+    case 1:  return C_GREEN;
+    case 2:  return C_PURPLE;
+    case 3:  return C_WHITE;
+    case 4:  return C_ORANGE;
+    case 5:  return C_CYAN;
+    default: return C_BLACK;
+    }
+}
+
 static void apple_scroll(void)
 {
     int r;
@@ -173,7 +198,7 @@ void ide_sink(char ch)
 {
     if (ch == '\f') { apple_clear(); return; }
     if (ch == '\n') { apple_newline(); return; }
-    if (acol >= APPLE_W)
+    if (acol >= apple_cols())
         apple_newline();
     cells[arow][acol++] = ch;
 }
@@ -425,15 +450,69 @@ static void heading(int x, int y, const char *name, const char *note)
         tui_puts(x + (int)strlen(name) + 2, y, note, A_DIM);
 }
 
+/* The Apple screen, drawn as the Apple drew it.
+ *
+ * In text it is characters. In graphics it is the page itself, two pixels to
+ * a cell with the upper half-block: the display had no characters in graphics
+ * mode and neither should this. It is scaled down to fit -- 280x192 does not
+ * go into a terminal at one pixel per pixel -- but the colours are the ones
+ * the artifact rules produce, so what shows up is what the machine showed.
+ */
+static void draw_graphics(int x0, int y0, int w, int h)
+{
+    unsigned char row[HIRES_W];
+    int cx, cy, lores = (gfx_mode() == GFX_LORES);
+    int src_w = lores ? LORES_W : HIRES_W;
+    int src_h = lores ? LORES_H : HIRES_H;
+
+    for (cy = 0; cy < h; cy++) {
+        int ytop = (cy * 2) * src_h / (h * 2);
+        int ybot = (cy * 2 + 1) * src_h / (h * 2);
+        int last = -1;
+
+        for (cx = 0; cx < w; cx++) {
+            int sx = cx * src_w / w;
+            unsigned char top, bot;
+
+            if (lores) {
+                top = hires_colour(PAL_HIRES);   /* placeholder, replaced below */
+                top = (unsigned char)lores_pixel(sx, ytop);
+                bot = (unsigned char)lores_pixel(sx, ybot);
+                /* Lo-res indices are the sixteen Apple colours; show the
+                 * nearest thing this palette has rather than nothing. */
+                top = (unsigned char)(top == PAL_LORES ? C_BLACK : C_GREEN + (top & 7));
+                bot = (unsigned char)(bot == PAL_LORES ? C_BLACK : C_GREEN + (bot & 7));
+            } else {
+                if (ytop != last) { hires_row(ytop, row); last = ytop; }
+                top = hires_colour(row[sx]);
+                hires_row(ybot, row);
+                last = ybot;
+                bot = hires_colour(row[sx]);
+            }
+            tui_put(x0 + cx, y0 + cy, G_HALF, ATTR(top, bot));
+        }
+    }
+}
+
 static void draw_apple(void)
 {
-    int y, x;
+    int y, x, w = apple_cols();
+    char note[24];
 
-    heading(APPLE_X, HEAD_Y, "Apple ][", "40x24");
-    for (y = 0; y < APPLE_H; y++) {
-        for (x = 0; x < APPLE_W; x++)
-            tui_put(APPLE_X + x, APPLE_Y + y, cells[y][x], A_APPLE);
+    if (gfx_mode() != GFX_TEXT) {
+        int gw = TUI_W - 2, gh = GFX_ROWS;
+        sprintf(note, "%s", gfx_mode() == GFX_LORES ? "lo-res 40x48"
+                                                    : "hi-res 280x192");
+        heading(APPLE_X, HEAD_Y, "Apple ][", note);
+        draw_graphics(APPLE_X, APPLE_Y, gw, gh);
+        return;
     }
+
+    sprintf(note, "%dx%d", w, APPLE_H);
+    heading(APPLE_X, HEAD_Y, "Apple ][", note);
+    for (y = 0; y < APPLE_H; y++)
+        for (x = 0; x < w; x++)
+            tui_put(APPLE_X + x, APPLE_Y + y, cells[y][x], A_APPLE);
 }
 
 static void draw_program(void)
@@ -441,6 +520,9 @@ static void draw_program(void)
     char line[300], note[32];
     int n = prog_count();
     int y;
+
+    if (gfx_mode() != GFX_TEXT)
+        return;
 
     sprintf(note, "%d line%s", n, n == 1 ? "" : "s");
     heading(PROG_X, PROG_HEAD_Y, "Program",
@@ -479,6 +561,8 @@ static void draw_machine(void)
     pane_line lines[PANE_MAXLINES];
     int n, y;
 
+    if (apple_wide())
+        return;
     heading(MACH_X, HEAD_Y, "Machine", 0);
     n = pane_machine(lines, PANE_MAXLINES);
     for (y = 0; y < MACH_H; y++) {

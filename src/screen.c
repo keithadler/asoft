@@ -6,12 +6,31 @@
 static scr_sink sink;
 static int col;
 static int row;
+static int cols = SCR_COLS;
 
 void scr_init(scr_sink s)
 {
     sink = s;
     col = 0;
     row = 0;
+    cols = SCR_COLS;
+}
+
+static void emit(char ch);
+
+int scr_cols(void) { return cols; }
+
+void scr_set_cols(int n)
+{
+    if (n != 40 && n != 80)
+        return;
+    if (n == cols)
+        return;
+    cols = n;
+    /* Switching cards clears the screen and homes the cursor, as it did. */
+    col = 0;
+    row = 0;
+    emit('\f');
 }
 
 static void emit(char ch)
@@ -35,7 +54,7 @@ void scr_putc(char ch)
         return;
     }
     emit(ch);
-    if (++col >= SCR_COLS) {
+    if (++col >= cols) {
         /* The Apple wraps by itself; the cursor lands at the start of the
          * next line without a carriage return being printed by the program. */
         col = 0;
@@ -65,7 +84,7 @@ void scr_puts(const char *s)
 void scr_comma(void)
 {
     int target = ((col / SCR_TABZONE) + 1) * SCR_TABZONE;
-    if (target >= SCR_COLS) {
+    if (target >= cols) {
         scr_newline();
         return;
     }
@@ -94,8 +113,8 @@ void scr_htab(int n)
 
     if (target < 0)
         target = 0;
-    if (target >= SCR_COLS)
-        target = SCR_COLS - 1;
+    if (target >= cols)
+        target = cols - 1;
 
     /* HTAB moves the cursor; it does not write anything. On the Apple the
      * screen is memory-mapped so nothing needs to be written, and a

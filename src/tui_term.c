@@ -34,6 +34,7 @@ static const char *glyph(int ch)
     case G_VERT:  return "\xe2\x95\x91";
     case G_SHADE: return "\xe2\x96\x91";
     case G_RULE:  return "\xe2\x94\x80";
+    case G_HALF:  return "\xe2\x96\x80";
     default:      return 0;
     }
 }

@@ -53,6 +53,7 @@ extern const unsigned char tui_palette[16][3];
 #define G_VERT   6
 #define G_SHADE  7        /* the desktop's stipple */
 #define G_RULE   8        /* single-line horizontal, for rules inside panes */
+#define G_HALF   9        /* upper half block: two pixels in one cell */
 
 void tui_init(void);
 void tui_shutdown(void);

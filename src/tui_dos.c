@@ -36,6 +36,7 @@ static unsigned char glyph(int ch)
     case G_VERT:  return 0xBA;
     case G_SHADE: return 0xB0;
     case G_RULE:  return 0xC4;
+    case G_HALF:  return 0xDF;   /* CP437 upper half block */
     default:      return (unsigned char)((ch < 32) ? ' ' : ch);
     }
 }

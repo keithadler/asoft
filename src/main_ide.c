@@ -80,11 +80,17 @@ static int dump_html(const char *path)
  * DOSBox to read an escape stream back from, so this is how the DOS build's
  * layout gets checked: run it, read the file out of the virtual disk, diff. */
 static int dump_screen(const char *path);
+static int dump_html(const char *path);
 
-/* The same, as a void, for ide.c to call after each redraw. */
+/* The same, as a void, for ide.c to call after each redraw. HTML when the
+ * name asks for it, because colour is most of what a graphics screen is. */
 static void write_screen(const char *path)
 {
-    (void)dump_screen(path);
+    size_t n = strlen(path);
+    if (n > 5 && strcmp(path + n - 5, ".html") == 0)
+        (void)dump_html(path);
+    else
+        (void)dump_screen(path);
 }
 
 static int dump_screen(const char *path)

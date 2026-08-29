@@ -8,8 +8,16 @@
 #ifndef ASOFT_SCREEN_H
 #define ASOFT_SCREEN_H
 
-#define SCR_COLS 40
+/* The width is not fixed. An Apple with an 80-column card in slot 3 becomes
+ * an eighty-column machine when a program says PR#3, and goes back to forty
+ * on PR#0 -- so the wrap point, HTAB's limit and the comma zones all move.
+ * SCR_MAXCOLS is what a buffer has to be able to hold. */
+#define SCR_MAXCOLS 80
+#define SCR_COLS 40              /* the width it starts at */
 #define SCR_ROWS 24
+
+int  scr_cols(void);
+void scr_set_cols(int n);        /* 40 or 80; anything else is ignored */
 #define SCR_TABZONE 16
 
 /* Supplied by the front end: put one character on the real display. The

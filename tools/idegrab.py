@@ -126,7 +126,8 @@ def render(s):
     return grid, attr
 
 if __name__ == "__main__":
-    out = run(["build/asoft-ide"], keys_from(sys.argv[1:]))
+    argv = ["build/asoft-ide"] + os.environ.get("IDEGRAB_ARGS", "").split()
+    out = run(argv, keys_from(sys.argv[1:]))
     grid, _ = render(out)
     print("+" + "-" * W + "+")
     for row in grid:

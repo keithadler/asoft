@@ -1553,7 +1553,18 @@ static void exec_statement(void)
     case T_SPEED:
         (void)need_num();
         return;
-    case T_PRNUM: case T_INNUM:
+    case T_PRNUM: {
+        /* PR#3 is the eighty-column card in slot 3, and PR#0 is the screen
+         * again. Everything else is a printer or a serial card that is not
+         * here, and is accepted and ignored as it always was. */
+        long slot = (long)need_num();
+        if (slot == 3)
+            scr_set_cols(80);
+        else if (slot == 0)
+            scr_set_cols(40);
+        return;
+    }
+    case T_INNUM:
         (void)need_num();
         return;
     case T_WAIT:
