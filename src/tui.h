@@ -89,6 +89,9 @@ int  tui_cell(int x, int y);
 #define K_F8     0x117
 #define K_F9     0x118
 #define K_F10    0x119
+/* A click. Where it landed is asked for separately, because threading it
+ * through an int return would mean encoding three numbers in one. */
+#define K_MOUSE  0x120
 #define K_ESC    27
 #define K_ENTER  13
 #define K_BS     8
@@ -96,5 +99,8 @@ int  tui_cell(int x, int y);
 
 int tui_getkey(void);        /* blocks until a key arrives */
 int tui_haskey(void);        /* non-zero if one is waiting */
+
+/* Cell coordinates and button of the most recent K_MOUSE. Button 0 is left. */
+void tui_mouse(int *x, int *y, int *button);
 
 #endif

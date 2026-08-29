@@ -6,6 +6,8 @@
 #     change POS(0) from 11 to 9 in the transcript
 #   - the editor reaches the program: line 20 is edited in place in the
 #     listing, and RUN then has to print the edited text, not the typed one
+#   - the mouse works: the second bug is switched back on by clicking the
+#     menu rather than walking it with the keyboard
 set -e
 cd "$(dirname "$0")/.."
 
@@ -19,6 +21,8 @@ python3 tools/idegrab.py \
     'HTAB 10: PRINT POS(0)' ENTER \
     TAB DOWN END BS BS BS BS BS 'EDITED"' DOWN TAB \
     F5 \
+    CLICK:16,0 CLICK:18,3 ESC \
+    'HTAB 10: PRINT POS(0)' ENTER \
     > "$out"
 
 if diff -u tests/ide_expected.txt "$out" > build/ide.diff; then

@@ -14,11 +14,11 @@
 |║]HTAB 10: PRINT POS(0)                  ║░║                                   ║|
 |║9                                       ║░║Bugs active                        ║|
 |║]RUN                                    ║░║  ONERR leak         ON            ║|
-|║HI                                      ║░║  HTAB off-by-two    off           ║|
+|║HI                                      ║░║  HTAB off-by-two    ON            ║|
 |║EDITED                                  ║░║  MBF rounding       ON            ║|
-|║]                                       ║░║  Greedy tokenizer   ON            ║|
-|║                                        ║░║                                   ║|
-|║                                        ║░║Last error   none                  ║|
+|║]HTAB 10: PRINT POS(0)                  ║░║  Greedy tokenizer   ON            ║|
+|║11                                      ║░║                                   ║|
+|║]                                       ║░║Last error   none                  ║|
 |║                                        ║░║                                   ║|
 |║                                        ║░║                                   ║|
 |║                                        ║░║                                   ║|
@@ -41,5 +41,5 @@
 |║                                        ║░║                                   ║|
 |║                                        ║░║                                   ║|
 |╚════════════════════════════════════════╝░╚═══════════════════════════════════╝|
-| TAB Edit   F5 Run   F9 List   F3 Load   F2 Save   F10 Menu   Ctrl-Q Quit       |
+| HTAB off-by-two is now ON                                                      |
 +--------------------------------------------------------------------------------+

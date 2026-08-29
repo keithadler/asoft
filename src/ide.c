@@ -83,9 +83,9 @@ static char ed_buf[256];
 static int  ed_dirty;
 
 static const char *status_term =
-    "TAB Edit   F5 Run   F9 List   F3 Load   F2 Save   F10 Menu   Ctrl-Q Quit";
+    "TAB/click Edit   F5 Run   F9 List   F3 Load   F2 Save   F10 Menu   Ctrl-Q Quit";
 static const char *status_edit =
-    "TAB Prompt   F5 Run   F8 Delete line   F10 Menu   Ctrl-Q Quit";
+    "TAB/click Prompt   F5 Run   F8 Delete line   F10 Menu   Ctrl-Q Quit";
 
 /* ------------------------------------------------------------ apple screen */
 
@@ -170,11 +170,23 @@ static void ed_load(void)
  * the caller re-finds its place afterwards. */
 static void ed_commit(void)
 {
+    const char *p = ed_buf;
+
     if (!ed_dirty)
         return;
     ed_dirty = 0;
-    if (ed_buf[0])
-        it_line(ed_buf);
+    while (*p == ' ')
+        p++;
+    if (!*p)
+        return;
+    /* A line in the listing has to start with a number. Without this a line
+     * typed without one would be run as an immediate statement the moment the
+     * cursor left it, which is a surprising way to lose an edit. */
+    if (*p < '0' || *p > '9') {
+        strcpy(status, "A program line has to start with a line number");
+        return;
+    }
+    it_line(ed_buf);
 }
 
 /* Keep the cursor's line on screen. */
@@ -555,10 +567,23 @@ static void do_menu_action(int m, int item)
     }
 }
 
-/* Drop one menu down and let the user pick. Returns when it closes. */
-static void menu_loop(void)
+/* Which menu title sits under this column, or -1. */
+static int menu_hit(int x)
 {
-    int m = 0, item = 0;
+    int m;
+    for (m = 0; m < MENU_COUNT; m++) {
+        int a = menu_x[m] - 1;
+        int b = menu_x[m] + (int)strlen(menu_title[m]) + 1;
+        if (x >= a && x <= b)
+            return m;
+    }
+    return -1;
+}
+
+/* Drop one menu down and let the user pick. Returns when it closes. */
+static void menu_loop(int start)
+{
+    int m = start, item = 0;
 
     for (;;) {
         const char **items = (m == 2) ? build_bug_items() : menu_items(m);
@@ -581,6 +606,26 @@ static void menu_loop(void)
         tui_flush();
 
         k = tui_getkey();
+
+        /* A click on an item picks it; on a title, switches to that menu;
+         * anywhere else closes, which is what a menu is expected to do. */
+        if (k == K_MOUSE) {
+            int mx, my, mb, hit;
+            tui_mouse(&mx, &my, &mb);
+            if (my == 0) {
+                hit = menu_hit(mx);
+                if (hit >= 0) { m = hit; item = 0; continue; }
+                return;
+            }
+            if (mx > x && mx < x + w - 1 && my > y && my <= y + n) {
+                item = my - y - 1;
+                do_menu_action(m, item);
+                if (m == 2) continue;
+                return;
+            }
+            return;
+        }
+
         if (k == K_ESC) return;
         if (k == K_LEFT)  { m = (m + MENU_COUNT - 1) % MENU_COUNT; item = 0; continue; }
         if (k == K_RIGHT) { m = (m + 1) % MENU_COUNT; item = 0; continue; }
@@ -609,13 +654,50 @@ static int pump(int want_line, char *buf, int max)
         k = tui_getkey();
         if (k == 10) k = K_ENTER;      /* a terminal that translated it anyway */
 
-        if (k == K_F10) { menu_loop(); ensure_prompt(); continue; }
+        if (k == K_F10) { menu_loop(0); ensure_prompt(); continue; }
         if (k == 17) { quitting = 1; return 0; }            /* Ctrl-Q */
         if (k == 3)  { break_seen = 1; continue; }          /* Ctrl-C */
         if (k == K_F5) { run_line("RUN"); ensure_prompt(); continue; }
         if (k == K_F9) { run_line("LIST"); ensure_prompt(); continue; }
         if (k == K_F3) { do_load(); ensure_prompt(); continue; }
         if (k == K_F2) { do_save(); ensure_prompt(); continue; }
+        /* Clicking a pane is the other way to move the keyboard, and
+         * clicking a line puts the cursor on it directly -- which is the
+         * thing a listing you cannot click at feels wrong for. */
+        if (k == K_MOUSE) {
+            int mx, my, mb, hit;
+            tui_mouse(&mx, &my, &mb);
+            status[0] = '\0';
+            if (my == 0) {
+                hit = menu_hit(mx);
+                if (hit >= 0) { menu_loop(hit); ensure_prompt(); }
+                continue;
+            }
+            if (mx > PROG_X && mx < PROG_X + PROG_BW - 1 &&
+                my > PROG_Y && my < PROG_Y + PROG_BH - 1) {
+                int row = prog_top + (my - PROG_Y - 1);
+                int n = prog_count();
+                if (focus == FOCUS_EDIT)
+                    ed_commit();
+                focus = FOCUS_EDIT;
+                ed_row = (row > n) ? n : row;
+                ed_load();
+                ed_col = mx - PROG_X - 1;
+                if (ed_col > (int)strlen(ed_buf))
+                    ed_col = (int)strlen(ed_buf);
+                ed_scroll_into_view();
+                continue;
+            }
+            if (mx > APPLE_X && mx < APPLE_X + APPLE_BW - 1 &&
+                my > APPLE_Y && my < APPLE_Y + APPLE_BH - 1) {
+                if (focus == FOCUS_EDIT)
+                    ed_commit();
+                focus = FOCUS_TERM;
+                continue;
+            }
+            continue;
+        }
+
         /* Tab moves the keyboard between the prompt and the listing. Leaving
          * the editor hands whatever was being typed back to the interpreter,
          * so a half-finished edit is not silently lost. */

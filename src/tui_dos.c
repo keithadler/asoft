@@ -65,6 +65,7 @@ void tui_init(void)
     int86(0x10, &r, &r);
 
     set_cursor_shape(0);
+    mouse_init();
     memset(ch_buf, ' ', sizeof(ch_buf));
     memset(at_buf, 7, sizeof(at_buf));
 }
@@ -72,6 +73,7 @@ void tui_init(void)
 void tui_shutdown(void)
 {
     union REGS r;
+    mouse_done();
     r.x.ax = (unsigned short)saved_mode;
     int86(0x10, &r, &r);
     set_cursor_shape(1);
@@ -195,9 +197,67 @@ static int from_scan(int scan)
 /* int 16h reports "nothing waiting" in the zero flag, which int86 does not
  * hand back, so use the runtime's own console calls instead. getch returns a
  * zero byte before an extended key's scan code. */
+/* --- mouse -------------------------------------------------------------- */
+
+/* int 33h is the mouse, and it is polled rather than queued: ask where the
+ * pointer is and which buttons are down. Its coordinates are in pixels even
+ * in text mode, eight to a cell. */
+static int mouse_ok;
+static int mouse_x, mouse_y, mouse_b;
+static int mouse_was_down;
+
+static void mouse_init(void)
+{
+    union REGS r;
+    r.x.ax = 0;
+    int86(0x33, &r, &r);
+    mouse_ok = (r.x.ax == 0xFFFF);
+    if (mouse_ok) {
+        r.x.ax = 1;                     /* show the pointer */
+        int86(0x33, &r, &r);
+    }
+}
+
+static void mouse_done(void)
+{
+    union REGS r;
+    if (!mouse_ok)
+        return;
+    r.x.ax = 2;                         /* hide it again */
+    int86(0x33, &r, &r);
+}
+
+/* Non-zero on the press itself, not for as long as the button is held. */
+static int mouse_pressed(void)
+{
+    union REGS r;
+    int down;
+
+    if (!mouse_ok)
+        return 0;
+    r.x.ax = 3;
+    int86(0x33, &r, &r);
+    down = r.x.bx & 3;
+    if (down && !mouse_was_down) {
+        mouse_was_down = 1;
+        mouse_b = (r.x.bx & 1) ? 0 : 1;
+        mouse_x = r.x.cx / 8;
+        mouse_y = r.x.dx / 8;
+        return 1;
+    }
+    if (!down)
+        mouse_was_down = 0;
+    return 0;
+}
+
+void tui_mouse(int *x, int *y, int *button)
+{
+    *x = mouse_x; *y = mouse_y; *button = mouse_b;
+}
+
 int tui_haskey(void)
 {
-    return kbhit() ? 1 : 0;
+    return (kbhit() || mouse_pressed()) ? 1 : 0;
 }
 
 int tui_getkey(void)
@@ -205,6 +265,11 @@ int tui_getkey(void)
     int c, k;
 
     for (;;) {
+        /* Nothing here blocks, so the mouse gets a look in between keys. */
+        while (!kbhit()) {
+            if (mouse_pressed())
+                return K_MOUSE;
+        }
         c = getch();
         if (c != 0 && c != 0xE0)
             return c;

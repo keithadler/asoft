@@ -23,9 +23,15 @@ NAMED = {
 }
 
 def keys_from(args):
+    """CLICK:x,y sends a left button press at that cell, in the SGR encoding
+    the front end asks for. Coordinates are zero-based here and one-based on
+    the wire, like the terminal itself."""
     out = []
     for a in args:
-        if a in NAMED:
+        if a.startswith("CLICK:"):
+            x, y = (int(v) for v in a[6:].split(","))
+            out.append("\x1b[<0;%d;%dM" % (x + 1, y + 1))
+        elif a in NAMED:
             out.append(NAMED[a])
         else:
             out.append(a.replace("\\e", "\x1b").replace("\\r", "\r").replace("\\t", "\t"))

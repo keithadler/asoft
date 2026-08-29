@@ -59,12 +59,17 @@ void tui_init(void)
     }
     printf("\033[?1049h");            /* alternate screen, so the shell survives */
     printf("\033[?25l");
+    /* Report button presses, in the SGR encoding: it is the only one that
+     * copes with a screen wider than 95 columns, which 80 is not, but it also
+     * distinguishes press from release, which the old encoding does not. */
+    printf("\033[?1000h\033[?1006h");
     memset(&shown, 0xFF, sizeof(shown));
     fflush(stdout);
 }
 
 void tui_shutdown(void)
 {
+    printf("\033[?1006l\033[?1000l");
     printf("\033[0m\033[?25h\033[?1049l");
     fflush(stdout);
     if (started)
@@ -174,6 +179,12 @@ void tui_flush(void)
 /* --- keys --------------------------------------------------------------- */
 
 static int pending = -1;
+static int mouse_x, mouse_y, mouse_b;
+
+void tui_mouse(int *x, int *y, int *button)
+{
+    *x = mouse_x; *y = mouse_y; *button = mouse_b;
+}
 
 static int raw_getc(void)
 {
@@ -216,6 +227,27 @@ static int decode_escape(void)
     if (a != '[' && a != 'O')
         return K_ESC;
     b = raw_getc();
+
+    /* ESC [ < button ; col ; row M for a press, m for a release. */
+    if (b == '<') {
+        int n[3], i = 0, v = 0, c;
+        n[0] = n[1] = n[2] = 0;
+        for (;;) {
+            c = raw_getc();
+            if (c >= '0' && c <= '9') { v = v * 10 + (c - '0'); continue; }
+            if (i < 3) n[i++] = v;
+            v = 0;
+            if (c == ';') continue;
+            break;                      /* M, m, or something malformed */
+        }
+        if (c != 'M' || n[0] > 2)
+            return K_ESC;               /* a release, or a drag: ignore it */
+        mouse_b = n[0];
+        mouse_x = n[1] - 1;             /* the wire format counts from one */
+        mouse_y = n[2] - 1;
+        return K_MOUSE;
+    }
+
     switch (b) {
     case 'A': return K_UP;
     case 'B': return K_DOWN;
