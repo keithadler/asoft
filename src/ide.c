@@ -271,8 +271,10 @@ static void ed_del(void)
 
 /* ------------------------------------------------------------------ menus */
 
-#define MENU_COUNT 5
-static const char *menu_title[MENU_COUNT] = { "File", "Run", "Bugs", "Debug", "Help" };
+#define MENU_COUNT 6
+static const char *menu_title[MENU_COUNT] = {
+    "File", "Run", "Bugs", "Debug", "Samples", "Help"
+};
 static int menu_x[MENU_COUNT];
 
 static const char *file_items[] = { "Load...", "Save...", "New", "Quit", 0 };
@@ -280,13 +282,34 @@ static const char *run_items[]  = { "Run", "List", "Clear", "Reset machine", 0 }
 static const char *dbg_items[]  = { "Clear last error", "Program pane home", 0 };
 static const char *help_items[] = { "About", 0 };
 
+/* The programs that ship in the bundle, so they are one pick away rather
+ * than something you have to know the name of. */
+static const char *sample_items[] = {
+    "Tests - compatibility suite",
+    "Moire - interference",
+    "Spirograph",
+    "Sierpinski",
+    "Mandelbrot",
+    "Hi-res colour demo",
+    "Shape tables",
+    "Lo-res colours",
+    "Snake - a game",
+    "ONERR leak",
+    0
+};
+static const char *sample_file[] = {
+    "TESTS.BAS", "MOIRE.BAS", "SPIRO.BAS", "SIERP.BAS", "MANDEL.BAS",
+    "HGRDEMO.BAS", "HGRSHAP.BAS", "LORES.BAS", "SNAKE.BAS", "ONERRFIX.BAS"
+};
+
 static const char **menu_items(int m)
 {
     switch (m) {
     case 0:  return file_items;
     case 1:  return run_items;
     case 3:  return dbg_items;
-    case 4:  return help_items;
+    case 4:  return sample_items;
+    case 5:  return help_items;
     default: return 0;              /* Bugs is built fresh each time */
     }
 }
@@ -590,6 +613,26 @@ static void do_save(void)
         message("Save", "Could not write that file.");
 }
 
+/* A sample sits beside the binary on DOS and under web/bundle in the source
+ * tree, so try both rather than making the caller care which. */
+static void load_sample(int i)
+{
+    char path[64];
+
+    if (it_load(sample_file[i])) {
+        ide_set_loaded(sample_file[i]);
+    } else {
+        sprintf(path, "web/bundle/%s", sample_file[i]);
+        if (!it_load(path)) {
+            sprintf(status, "Could not find %s", sample_file[i]);
+            return;
+        }
+        ide_set_loaded(path);
+    }
+    prog_top = 0;
+    sprintf(status, "Loaded %s - press F5 to run", sample_file[i]);
+}
+
 static void do_menu_action(int m, int item)
 {
     switch (m) {
@@ -613,6 +656,9 @@ static void do_menu_action(int m, int item)
     case 3:
         if (item == 0) { a2mem[ZP_ERRNUM] = 0; strcpy(status, "Last error cleared"); }
         else prog_top = 0;
+        return;
+    case 4:
+        load_sample(item);
         return;
     default:
         message("About",
@@ -838,6 +884,19 @@ int host_getkey(void)
 {
     if (quitting) return 0;
     return pump(0, 0, 0);
+}
+
+int host_pollkey(void)
+{
+    /* The event loop owns the keyboard, so a poll has to go through it. Only
+     * ordinary characters reach a program; function keys stay with the IDE. */
+    if (!tui_haskey())
+        return 0;
+    {
+        int k = tui_getkey();
+        if (k == 3) { break_seen = 1; return 0; }
+        return (k >= 32 && k < 127) ? k : ((k == K_ENTER) ? 13 : 0);
+    }
 }
 
 int host_break(void)

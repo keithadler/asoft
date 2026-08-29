@@ -193,10 +193,31 @@ between walks a distorted version of the shape that depends on the scale.
 `ROT=` here rounds to the nearest quadrant instead -- right on the multiples of
 16 that programs actually use, an approximation elsewhere.
 
-### Demos
+### Programs
 
-    ./build/asoft -r web/bundle/HGRDEMO.BAS    # colour rules, sine, borders
+Ten ship in `web/bundle`, and the IDE's Samples menu loads any of them in one
+pick. From a shell:
+
+    ./build/asoft -r web/bundle/MANDEL.BAS     # banded by escape time
+    ./build/asoft -r web/bundle/SIERP.BAS      # Sierpinski, by the chaos game
+    ./build/asoft -r web/bundle/SPIRO.BAS      # hypotrochoids
+    ./build/asoft -r web/bundle/MOIRE.BAS      # interference
+    ./build/asoft -r web/bundle/HGRDEMO.BAS    # the colour rules themselves
     ./build/asoft -r web/bundle/HGRSHAP.BAS    # scale, rotation, XDRAW, collisions
+    ./build/asoft -r web/bundle/LORES.BAS      # all sixteen lo-res colours
+    ./build/asoft -r web/bundle/SNAKE.BAS      # I J K M to steer, Q to quit
+
+Mandelbrot in particular is worth looking at: it is banded by escape time into
+the four hi-res colours, which is exactly the palette Apple II fractal art of
+the period had to work with.
+
+### The keyboard, for games
+
+`GET` stops and waits, which is no use to anything that has to keep moving.
+Programs of the period polled the keyboard soft switches instead, and those
+work here: `PEEK(-16384)` returns the last key with bit 7 set while it is
+unread, and `POKE -16368,0` acknowledges it. SNAKE.BAS is built on that, so it
+keeps going while you decide where to turn.
 
 `build/hgrdump program.bas out.bmp [scale]` renders a program's graphics page
 to a file, which is how the colour rules are checked without squinting at a

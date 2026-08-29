@@ -50,6 +50,37 @@ int host_getkey(void)
     return (c == EOF) ? 0 : c;
 }
 
+/* Non-blocking, without disturbing the line-based input the prompt uses: the
+ * terminal is put into raw mode for the length of one read and put back. On
+ * DOS the runtime already offers exactly this. */
+#ifdef __DOS__
+#include <conio.h>
+int host_pollkey(void)
+{
+    return kbhit() ? getch() : 0;
+}
+#else
+#include <termios.h>
+#include <unistd.h>
+int host_pollkey(void)
+{
+    struct termios old, raw;
+    unsigned char c;
+    int n;
+
+    if (!isatty(STDIN_FILENO) || tcgetattr(STDIN_FILENO, &old) != 0)
+        return 0;
+    raw = old;
+    raw.c_lflag &= (unsigned long)~(ICANON | ECHO);
+    raw.c_cc[VMIN] = 0;
+    raw.c_cc[VTIME] = 0;
+    tcsetattr(STDIN_FILENO, TCSANOW, &raw);
+    n = (int)read(STDIN_FILENO, &c, 1);
+    tcsetattr(STDIN_FILENO, TCSANOW, &old);
+    return (n == 1) ? c : 0;
+}
+#endif
+
 int host_break(void)
 {
     /* Nothing to poll: a redirected stdin cannot deliver Ctrl-C, and an

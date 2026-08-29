@@ -13,4 +13,9 @@ int host_getkey(void);
 /* Non-zero when the user has pressed Ctrl-C since the last call. */
 int host_break(void);
 
+/* A key if one is waiting, 0 if not. Never blocks. This is what the keyboard
+ * strobe at $C000 reads, and it is the difference between a program that can
+ * only ask GET and wait, and a game that can keep moving while you decide. */
+int host_pollkey(void);
+
 #endif

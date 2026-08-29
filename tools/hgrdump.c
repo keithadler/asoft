@@ -22,6 +22,7 @@
 static void sink(char ch) { (void)ch; }
 int host_getline(char *buf, int max) { (void)buf; (void)max; return 0; }
 int host_getkey(void) { return 0; }
+int host_pollkey(void) { return 0; }
 int host_break(void) { return 0; }
 
 static void put16(FILE *f, unsigned v) { fputc(v & 255, f); fputc((v >> 8) & 255, f); }

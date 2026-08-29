@@ -44,6 +44,8 @@ static a2addr cur_line;           /* 0 while in immediate mode */
 static const unsigned char *ip;
 static unsigned char imm[512];    /* tokenised immediate-mode line */
 
+static double kbd_peek(a2addr addr);   /* the keyboard soft switches */
+
 static int   running;
 static int   quitting;
 static long  stopped_line;        /* where STOP left off, for CONT */
@@ -565,8 +567,10 @@ static void call_builtin(unsigned char t, value *out)
 
     case T_PEEK: {
         double v = paren_num();
+        a2addr addr;
         if (v < -65535.0 || v > 65535.0) raise_err(ERR_ILLEGALQTY);
-        out->num = a2_peek((a2addr)((long)v & 0xFFFF));
+        addr = (a2addr)((long)v & 0xFFFF);
+        out->num = kbd_peek(addr);
         return;
     }
 
@@ -1151,6 +1155,33 @@ static void do_def(void)
     fns[i].used = 1;
 }
 
+/* The keyboard, as a pair of soft switches rather than a call that waits.
+ * PEEK(-16384) is the key with bit 7 set while it has not been acknowledged;
+ * POKE -16368,0 acknowledges it. A program that polls these keeps running
+ * between keystrokes, which is what makes a real-time game possible. */
+static unsigned char kbd_latch;
+
+static double kbd_peek(a2addr addr)
+{
+    if (addr == KBD_DATA) {
+        if (!(kbd_latch & 0x80)) {
+            int k = host_pollkey();
+            if (k > 0) {
+                if (k >= 'a' && k <= 'z')
+                    k -= 32;             /* the Apple had no lower case */
+                kbd_latch = (unsigned char)((k & 0x7F) | 0x80);
+            }
+        }
+        return kbd_latch;
+    }
+    if (addr == KBD_STROBE) {
+        unsigned char was = kbd_latch;
+        kbd_latch &= 0x7F;
+        return was;
+    }
+    return a2_peek(addr);
+}
+
 static void do_poke(void)
 {
     double a = need_num();
@@ -1161,7 +1192,10 @@ static void do_poke(void)
         if (v < -255 || v > 255)
             raise_err(ERR_ILLEGALQTY);
         addr = (long)a;
-        a2_poke((a2addr)(addr & 0xFFFF), (unsigned char)((long)v & 0xFF));
+        if ((addr & 0xFFFF) == KBD_STROBE)
+            kbd_latch &= 0x7F;
+        else
+            a2_poke((a2addr)(addr & 0xFFFF), (unsigned char)((long)v & 0xFF));
     }
 }
 

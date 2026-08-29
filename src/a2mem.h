@@ -32,6 +32,12 @@
 #define ZP_FRETOP   0x6F
 #define ZP_MEMSIZ   0x73
 #define ZP_CURLIN   0x75
+/* Soft switches. $C000 holds the last key with bit 7 set while it is still
+ * unread; reading or writing $C010 clears that bit. Games poll these rather
+ * than calling GET, because GET stops until something is typed. */
+#define KBD_DATA    0xC000
+#define KBD_STROBE  0xC010
+
 #define ZP_SCALE    0xE7          /* SCALE= */
 #define ZP_SHAPE    0xE8          /* pointer to the shape table */
 #define ZP_COLLISION 0xEA         /* bumped whenever DRAW hits a lit pixel */

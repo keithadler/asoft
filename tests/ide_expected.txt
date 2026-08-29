@@ -1,5 +1,5 @@
 +--------------------------------------------------------------------------------+
-|  File    Run    Bugs    Debug    Help                                          |
+|  File    Run    Bugs    Debug    Samples    Help                               |
 |  asoft   Applesoft BASIC for DOS                                  (no program) |
 |                                                                                |
 | Apple ][  40x24                            Machine                             |
