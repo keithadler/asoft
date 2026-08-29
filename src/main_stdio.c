@@ -61,15 +61,30 @@ int host_pollkey(void)
     return kbhit() ? getch() : 0;
 }
 #else
+#include <sys/select.h>
 #include <termios.h>
 #include <unistd.h>
 int host_pollkey(void)
 {
     struct termios old, raw;
     unsigned char c;
+    fd_set r;
+    struct timeval tv;
     int n;
 
-    if (!isatty(STDIN_FILENO) || tcgetattr(STDIN_FILENO, &old) != 0)
+    if (!isatty(STDIN_FILENO))
+        return 0;
+    /* Ask first, and only touch the terminal mode when there is something to
+     * read. A program polling the keyboard does so in a tight loop, and
+     * changing modes twice per poll to find out there was nothing is most of
+     * the cost of the loop. */
+    FD_ZERO(&r);
+    FD_SET(STDIN_FILENO, &r);
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+    if (select(STDIN_FILENO + 1, &r, 0, 0, &tv) <= 0)
+        return 0;
+    if (tcgetattr(STDIN_FILENO, &old) != 0)
         return 0;
     raw = old;
     raw.c_lflag &= (unsigned long)~(ICANON | ECHO);

@@ -52,6 +52,7 @@ check: build/asoft build/asoft-ide
 	@./tests/run_capture.sh inputget
 	@./tests/run_local.sh nextlist
 	@./tests/run_local.sh apple
+	@./tests/run_cli_keys.sh
 	@./tests/run_ide.sh
 	@./tests/run_ide_edit.sh
 	@./tests/run_ide_keys.sh

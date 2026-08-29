@@ -309,6 +309,19 @@ work here: `PEEK(-16384)` returns the last key with bit 7 set while it is
 unread, and `POKE -16368,0` acknowledges it. SNAKE.BAS is built on that, so it
 keeps going while you decide where to turn.
 
+Both front ends are tested against a real terminal for this, because a pipe
+cannot show it: `tests/run_cli_keys.sh` drives the console build under a pty
+and `tests/run_ide_keys.sh` drives the windowed one, and in each case a
+running program has to see a key pressed while it runs. The game test asks for
+Q, which ends differently from running into a wall, so QUIT rather than GAME
+OVER is what proves the key arrived.
+
+One thing to know about SNAKE.BAS: a `FOR` loop is the only clock Applesoft
+has, so line 47 sets the pace and the right number depends on the machine. It
+ships at 600000, which is about right for the native build. Under DOSBox --
+the browser, or a real DOS machine -- the interpreter runs a good deal slower,
+so lower it: 2000 is roughly the same speed there.
+
 `build/hgrdump program.bas out.bmp [scale]` renders a program's graphics page
 to a file, which is how the colour rules are checked without squinting at a
 terminal.
