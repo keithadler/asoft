@@ -31,4 +31,10 @@ long pace_rate(void);
 void pace_reset(void);
 void pace_statement(void);
 
+/* The wall clock, in microseconds, portably: gettimeofday where there is
+ * one, the 55ms DOS tick where there is not. Here because pace.c already
+ * had to solve this and a display wanting to rate-limit itself is the same
+ * problem. */
+long pace_now_us(void);
+
 #endif

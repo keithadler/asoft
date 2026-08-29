@@ -24,7 +24,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <sys/time.h>
 
 /* The layout owes more to a modern terminal application than to 1990: no
  * frames, no desktop pattern, sections separated by space and a coloured
@@ -1060,16 +1059,9 @@ int host_pollkey(void)
  * rate-limited to roughly a screen refresh. */
 static long last_paint_us;
 
-static long paint_now_us(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, 0);
-    return (long)tv.tv_sec * 1000000L + (long)tv.tv_usec;
-}
-
 static void live_repaint(void)
 {
-    long now = paint_now_us();
+    long now = pace_now_us();
 
     if (now - last_paint_us < 33000L)
         return;

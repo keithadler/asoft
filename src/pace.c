@@ -14,7 +14,7 @@ static long start_us;
 /* Wall clock in microseconds. DOS has no multitasking, so its clock() is wall
  * time and the 55ms tick is fine for pacing; elsewhere clock() would measure
  * processor time, which stops advancing the moment we sleep. */
-static long now_us(void)
+long pace_now_us(void)
 {
 #ifdef __DOS__
     return (long)((double)clock() * 1000000.0 / (double)CLOCKS_PER_SEC);
@@ -33,8 +33,8 @@ static void sleep_us(long us)
     {
         /* Nothing else wants the processor, and DOS has no sleep worth the
          * name, so wait for the clock to catch up. */
-        long until = now_us() + us;
-        while (now_us() < until)
+        long until = pace_now_us() + us;
+        while (pace_now_us() < until)
             ;
     }
 #else
@@ -53,7 +53,7 @@ long pace_rate(void) { return rate; }
 void pace_reset(void)
 {
     counted = 0;
-    start_us = now_us();
+    start_us = pace_now_us();
 }
 
 /* Sleep off whatever this statement was ahead by. Checking every statement
@@ -70,7 +70,7 @@ void pace_statement(void)
         return;
 
     behind = (long)((double)counted * 1000000.0 / (double)rate)
-           - (now_us() - start_us);
+           - (pace_now_us() - start_us);
     if (behind > 0)
         sleep_us(behind);
 }
