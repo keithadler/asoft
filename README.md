@@ -161,6 +161,35 @@ is Microsoft BASIC (`DEFINT A-Z`); one uses string `DEF FN`, which Applesoft
 has never had; and two are wrapped listings rather than source, their DATA
 statements continued across lines with no line number.
 
+### Answering the prompts
+
+`--feed` answers INPUT and GET instead of closing stdin, which is the
+difference between a program stopping at its first question and actually
+running. It roughly doubles what gets exercised: `do_input`, the keyboard
+strobe, `ONERR`, and the long tail of a program's own logic.
+
+Fed input, the same 116 programs give 50 clean runs, 22 that raise an error
+inside a program, and 44 still going when the clock runs out -- mostly games
+waiting for a better answer than a canned one. Every one of the 22 is
+accounted for:
+
+- **13 syntax errors**, all of them the greedy tokenizer doing its job or code
+  that was never Applesoft. `INWORD` becomes `INW OR D`, `renew` becomes
+  `re NEW`, `elevation` becomes `elev AT ion`, `score` becomes `SC OR E`. So
+  does `IF NOT A THEN`, which is worth knowing: `A THEN` matches AT across the
+  space and leaves `HEN`. The reference does exactly the same thing, byte for
+  byte -- a variable called `A` in front of `THEN` really did break on the
+  hardware, and only `TO` and `ATN` get rescued.
+- **5 bad subscripts**, from canned answers steering past the ten elements an
+  undimensioned array gets. Auto-dimensioning itself works.
+- **3 out of memory**, two of them genuinely enormous -- `DIM L(128,24,2)` and
+  `DIM P(64,2,70,3)` do not fit in a 64K image, and did not fit in a real one.
+- **1 out of data**, a program reading past its DATA.
+
+Nothing in that list is an interpreter bug. Re-entering a FOR was checked
+separately, since a loop exhausting memory would have been one: 200 re-entries
+of the same loop variable reuse the frame rather than stacking up.
+
 ### The bugs earn their keep
 
 Turning the ROM bugs off makes *more* programs fail, not fewer -- 28 against

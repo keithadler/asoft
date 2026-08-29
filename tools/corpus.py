@@ -15,7 +15,10 @@ usage: tools/corpus.py <directory> [--seconds N] [--show ERROR]
 import argparse, collections, os, re, subprocess, sys
 
 ANSI = re.compile(rb'\x1b\[[0-9;?]*[A-Za-z]')
-ERR = re.compile(rb'\?([A-Z][A-Z0-9 \']*?ERROR)(?: IN (\d+))?')
+# Only errors raised inside a running program count. Once a program ends, the
+# prompt reads whatever is left of the fed input as commands and rejects it,
+# which says nothing about the interpreter.
+ERR = re.compile(rb'\?([A-Z][A-Z0-9 \'?]*?(?:ERROR|MEMORY|DATA|SUBSCRIPT|OVERFLOW)) IN (\d+)')
 NUMBERED = re.compile(rb'^\s*\d+\s')
 
 def looks_like_basic(path):
@@ -26,9 +29,17 @@ def looks_like_basic(path):
         return False
     return sum(1 for l in head if NUMBERED.match(l)) >= 3
 
-def run(binary, path, seconds, extra=()):
+# Something to say at an INPUT prompt. A program asking for a name, a number
+# and a yes/no in turn should get something plausible for each rather than end
+# of file, which is what stops most of them on the first question.
+ANSWERS = [b'1', b'Y', b'A', b'2', b'N', b'5', b'', b'3', b'TEST', b'10']
+FEED = b'\n'.join(ANSWERS * 200) + b'\n'
+
+def run(binary, path, seconds, extra=(), feed=False):
     try:
-        p = subprocess.run([binary] + list(extra) + ['-r', path], stdin=subprocess.DEVNULL,
+        p = subprocess.run([binary] + list(extra) + ['-r', path],
+                           input=FEED if feed else None,
+                           stdin=None if feed else subprocess.DEVNULL,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            timeout=seconds)
         return p.stdout, False
@@ -43,6 +54,9 @@ def main():
     ap.add_argument('--show', help='list the programs raising this error')
     ap.add_argument('--no-bugs', action='store_true',
                     help='pass -n, turning off the deliberate ROM bugs')
+    ap.add_argument('--feed', action='store_true',
+                    help='answer INPUT and GET instead of closing stdin, so '
+                         'programs get past their prompts')
     args = ap.parse_args()
 
     files = []
@@ -59,7 +73,7 @@ def main():
 
     for p in sorted(files):
         out, timed_out = run(args.binary, p, args.seconds,
-                             ('-n',) if args.no_bugs else ())
+                             ('-n',) if args.no_bugs else (), args.feed)
         out = ANSI.sub(b'', out)
         errs = sorted({m.group(1).decode() for m in ERR.finditer(out)})
         name = os.path.relpath(p, args.directory)

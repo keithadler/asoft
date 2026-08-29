@@ -45,6 +45,7 @@ check: build/asoft build/asoft-ide
 	@./tests/run_capture.sh immfor
 	@./tests/run_capture.sh qmark
 	@./tests/run_capture.sh attoamb
+	@./tests/run_capture.sh atthen
 	@./tests/run_capture.sh spacedkw
 	@./tests/run_capture.sh dimscalar
 	@./tests/run_local.sh nextlist
