@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Applesoft BASIC — Console</title>
-<link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
-<script src="https://v8.js-dos.com/latest/js-dos.js"></script>
+<link rel="stylesheet" href="vendor/jsdos/js-dos.css">
+<script src="vendor/jsdos/js-dos.js"></script>
 <style>
   :root { color-scheme: dark; }
   html, body { height: 100%; margin: 0; background: #0c0c0e; color: #c5c5c5;
@@ -137,7 +137,8 @@ for (const [name, desc] of PROGRAMS) {
 
 let emu = null, bootAt = 0;
 Dos(document.getElementById("dos"), {
-  url: "asoft.jsdos",
+  pathPrefix: "vendor/jsdos/emulators/",
+  url: "asoft.jsdos?v=d76adb24136f",
   renderAspect: "4/3",
   autoStart: true,
   kiosk: true,
@@ -166,14 +167,20 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 let promptReady = false;
 async function waitForPrompt() {
   if (promptReady) return;
-  for (let i = 0; i < 150; i++) {
-    try {
-      const prog = await emu.getRunningProgram();
-      if (prog && prog.toUpperCase().includes("ASOFT")) break;
-    } catch (_) {}
-    await sleep(200);
+  if (typeof emu.getRunningProgram === "function") {
+    for (let i = 0; i < 150; i++) {
+      try {
+        const prog = await emu.getRunningProgram();
+        if (prog && prog.toUpperCase().includes("ASOFT")) break;
+      } catch (_) {}
+      await sleep(200);
+    }
+    await sleep(1500);
+  } else {
+    // older js-dos: no way to ask, so give the autoexec a generous moment
+    const up = Date.now() - bootAt;
+    if (up < 5000) await sleep(5000 - up);
   }
-  await sleep(1500);
   promptReady = true;
 }
 async function press(code, ms = 32) {

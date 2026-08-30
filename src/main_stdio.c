@@ -37,12 +37,18 @@ static void sink(char ch)
 
 int host_getline(char *buf, int max)
 {
-    int len;
+    int len, i, j;
     if (!fgets(buf, max, stdin))
         return 0;
     len = (int)strlen(buf);
     while (len && (buf[len - 1] == '\n' || buf[len - 1] == '\r'))
         buf[--len] = '\0';
+    /* The ROM's GETLN never let a control character into the line; a Ctrl-C
+     * pressed at the prompt should not turn into a token, so drop them. */
+    for (i = j = 0; i < len; i++)
+        if ((unsigned char)buf[i] >= 32)
+            buf[j++] = buf[i];
+    buf[j] = '\0';
     return 1;
 }
 
@@ -110,9 +116,22 @@ int host_echoes(void)
 
 int host_break(void)
 {
+#ifdef __DOS__
+    /* Poll the keyboard between statements: a pending Ctrl-C stops the
+     * program, the way the ROM's GETLN check did. Anything else is pushed
+     * back for the program's own polling (SNAKE reads -16384). */
+    if (kbhit()) {
+        int c = getch();
+        if (c == 3)
+            return 1;
+        ungetch(c);
+    }
+    return 0;
+#else
     /* Nothing to poll: a redirected stdin cannot deliver Ctrl-C, and an
      * interactive one lets the signal handler deal with it. */
     return 0;
+#endif
 }
 
 static void usage(const char *argv0)

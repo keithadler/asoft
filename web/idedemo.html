@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Applesoft BASIC — IDE</title>
-<link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
-<script src="https://v8.js-dos.com/latest/js-dos.js"></script>
+<link rel="stylesheet" href="vendor/jsdos/js-dos.css">
+<script src="vendor/jsdos/js-dos.js"></script>
 <style>
   :root { color-scheme: dark; }
   html, body { height: 100%; margin: 0; background: #0c0c0e; color: #c5c5c5;
@@ -34,7 +34,8 @@
 </footer>
 <script>
 Dos(document.getElementById("dos"), {
-  url: "idedemo.jsdos",
+  pathPrefix: "vendor/jsdos/emulators/",
+  url: "idedemo.jsdos?v=e0080efce791",
   autoStart: true,
   kiosk: true,
   onEvent: (e, arg) => { if (e === "ci-ready") window.__ci = arg; },

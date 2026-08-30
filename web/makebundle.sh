@@ -18,3 +18,9 @@ rm -f asoft.jsdos
 ( cd bundle && zip -q -r -X ../asoft.jsdos .jsdos ./*.EXE ./*.BAS )
 
 unzip -l asoft.jsdos
+
+# js-dos caches bundles in IndexedDB by URL, so a changed bundle must be
+# fetched under a new URL. Stamp the content hash into the host page.
+V=$(shasum asoft.jsdos | cut -c1-12)
+perl -pi -e "s|url: \"asoft.jsdos(\\?v=[a-f0-9]+)?\"|url: \"asoft.jsdos?v=$V\"|" console.html
+echo "console.html now loads asoft.jsdos?v=$V"
