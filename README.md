@@ -21,6 +21,22 @@ kills the program with `?OUT OF MEMORY` after exactly sixty of them, because
 `ONERR` leaks a stack frame every time. All of that is reproduced deliberately
 and can be switched off individually.
 
+The console, running the compatibility checks — nine-digit floats, the POS
+bug, and the ONERR leak dying on schedule:
+
+![The console front end running TESTS.BAS](web/shots/console.png)
+
+The Turbo Vision front end: the Apple's 40x24 screen in a window, next to a
+Machine pane showing the real zero-page pointers, the control stack, and
+which ROM bugs are switched on:
+
+![The windowed IDE](web/shots/ide.png)
+
+And the point of it all — `MANDEL.BAS` drawn through the hi-res colour rules,
+fringes included:
+
+![MANDEL.BAS in hi-res](web/shots/mandel.png)
+
 ## Layout
 
 ```
