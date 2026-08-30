@@ -32,10 +32,19 @@ which ROM bugs are switched on:
 
 ![The windowed IDE](web/shots/ide.png)
 
-And the point of it all — `MANDEL.BAS` drawn through the hi-res colour rules,
-fringes included:
+And the point of it all — the sample programs drawn through the hi-res colour
+rules, fringes included:
 
 ![MANDEL.BAS in hi-res](web/shots/mandel.png)
+
+| | | |
+|---|---|---|
+| ![DRAGON](web/shots/dragon.png) | ![FERN](web/shots/fern.png) | ![JULIA](web/shots/julia.png) |
+| ![SIERP](web/shots/sierp.png) | ![SPIRO](web/shots/spiro.png) | ![MOIRE](web/shots/moire.png) |
+
+Every one is a short Applesoft program from `web/bundle/`, rendered by the
+interpreter itself (`tools/hgrdump.c` runs a program and writes the hi-res
+page to a BMP).
 
 ## Layout
 
