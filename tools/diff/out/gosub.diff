@@ -1,0 +1,7 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/gosub.rom.txt	2026-08-29 22:17:05
++++ /Users/keith/Downloads/asoft/tools/diff/out/gosub.asoft.txt	2026-08-29 22:17:05
+@@ -2,3 +2,4 @@
+ SUB3
+ SUB3
+ ON GOTO 3
++]

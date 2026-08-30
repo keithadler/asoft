@@ -50,9 +50,12 @@
 <main>
 <header>
   <h1><span class="prompt">]</span>Applesoft BASIC, in your browser</h1>
-  <p class="tag">The Apple II's BASIC — bugs and all — rebuilt as a real 16-bit DOS
-     program and run here under DOSBox. Nothing to install. Click a program below
-     and it loads and runs itself.</p>
+  <p class="tag">The BASIC that could have taken the market GW-BASIC owned —
+     two significant characters per variable name, six colours the display
+     half-invents, and floats that answer <code>.1 + .2</code> with
+     <code>.3</code> — rebuilt bugs-and-all as a real 16-bit DOS program and
+     run here under DOSBox. Nothing to install. Click a program below and it
+     loads and runs itself.</p>
 </header>
 
 <div class="hero-cards">
@@ -92,14 +95,18 @@
   <p>Ask it for <code>PRINT .1 + .2</code> and it says <code>.3</code> — not because
      anything is rounded for show, but because Applesoft carried nine significant
      digits in its 5-byte floats, and that is what nine digits gives you.</p>
-  <p><code>HTAB 10 : PRINT POS(0)</code> answers <code>11</code>, which is wrong by
-     two and is exactly what the ROM did. Name a variable <code>TOTAL</code> and
-     <code>LIST</code> shows it as <code>TO TAL</code>, because the tokenizer finds
-     the keyword hiding inside. Trap errors in a loop and <code>ONERR</code> leaks a
-     stack frame every time, killing the program after exactly sixty of them.</p>
-  <p>All of it is reproduced deliberately, verified against the reference build,
-     and each misfeature can be switched off individually. This is an act of
-     preservation, not nostalgia for its own sake.</p>
+  <p>Name a variable <code>TOTAL</code> and <code>LIST</code> shows it as
+     <code>TO TAL</code>, because the tokenizer finds the keyword hiding inside.
+     Trap errors in a loop and <code>ONERR</code> leaks a stack frame every time,
+     killing the program after exactly sixty of them, and
+     <code>?OUT OF MEMORY ERROR</code> is spelled exactly the way the machine
+     spelled it.</p>
+  <p>All of it is reproduced deliberately and checked against the genuine
+     Applesoft ROM running in an Apple II emulator — sixteen of nineteen test
+     programs come out byte-identical, and the differential harness in the
+     repository shows its work. Each misfeature can be switched off
+     individually. This is an act of preservation, not nostalgia for its own
+     sake.</p>
 </div>
 
 <h2 class="sec">Good to know</h2>

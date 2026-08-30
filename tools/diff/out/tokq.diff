@@ -1,0 +1,7 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/tokq.rom.txt	2026-08-29 22:17:08
++++ /Users/keith/Downloads/asoft/tools/diff/out/tokq.asoft.txt	2026-08-29 22:17:08
+@@ -1,3 +1,4 @@
+ 30 TO TAL = 5
+ 
+ ?SYNTAX ERROR IN 30
++]

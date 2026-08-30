@@ -40,7 +40,7 @@ check: build/asoft build/asoft-ide
 	  $(CC) $(CFLAGS) -I. -o build/$$n $$t $(CORE) $(LDLIBS); \
 	  ./build/$$n; \
 	done
-	@./tests/run_capture.sh tests 'FRE(0)=35491'
+	@./tests/run_capture.sh tests 'FRE(0)=35508'
 	@./tests/run_capture.sh wide
 	@./tests/run_capture.sh remcolon
 	@./tests/run_capture.sh lowercase

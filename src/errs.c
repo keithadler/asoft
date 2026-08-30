@@ -2,7 +2,7 @@
 
 static const struct { int code; const char *msg; } table[] = {
     { ERR_NEXTWITHOUTFOR,   "NEXT WITHOUT FOR" },
-    { ERR_SYNTAX,           "SYNTAX ERROR" },
+    { ERR_SYNTAX,           "SYNTAX" },
     { ERR_RETWITHOUTGOSUB,  "RETURN WITHOUT GOSUB" },
     { ERR_OUTOFDATA,        "OUT OF DATA" },
     { ERR_ILLEGALQTY,       "ILLEGAL QUANTITY" },
@@ -16,7 +16,7 @@ static const struct { int code; const char *msg; } table[] = {
     { ERR_STRINGTOOLONG,    "STRING TOO LONG" },
     { ERR_FORMULATOOCOMPLEX,"FORMULA TOO COMPLEX" },
     { ERR_UNDEFFUNC,        "UNDEF'D FUNCTION" },
-    { ERR_REENTER,          "RE-ENTER" },
+    { ERR_REENTER,          "REENTER" },
     { ERR_BREAK,            "BREAK" }
 };
 

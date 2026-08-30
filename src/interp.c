@@ -1706,10 +1706,18 @@ static void report_error(int code)
      * zero, which is why a failed immediate command leaves the "]" on a line
      * of its own and a failure mid-program prints a blank line first. */
     scr_newline();
-    if (running && cur_line)
-        sprintf(buf, "?%s IN %ld", err_message(code), a2_prog_lineno(cur_line));
-    else
-        sprintf(buf, "?%s", err_message(code));
+    /* The ROM gives every message an " ERROR" suffix - "?SYNTAX ERROR",
+     * "?OUT OF DATA ERROR IN 250". Only "?REENTER" (and "BREAK IN n",
+     * reported elsewhere) go without it. */
+    {
+        const char *sfx = (code == ERR_REENTER || code == ERR_BREAK)
+                              ? "" : " ERROR";
+        if (running && cur_line)
+            sprintf(buf, "?%s%s IN %ld", err_message(code), sfx,
+                    a2_prog_lineno(cur_line));
+        else
+            sprintf(buf, "?%s%s", err_message(code), sfx);
+    }
     scr_puts(buf);
     scr_newline();
 }

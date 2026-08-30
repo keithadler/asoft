@@ -16,11 +16,11 @@
 |                                                                                |
 |                                            Bugs active                         |
 |                                              ONERR leak         ON             |
-|                                              HTAB off-by-two    ON             |
 |                                              MBF rounding       ON             |
 |                                              Greedy tokenizer   ON             |
 |                                                                                |
 |                                            Last error   none                   |
+|                                                                                |
 |                                                                                |
 |                                                                                |
 |                                                                                |

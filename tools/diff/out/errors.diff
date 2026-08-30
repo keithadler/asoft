@@ -1,0 +1,8 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/errors.rom.txt	2026-08-29 22:17:27
++++ /Users/keith/Downloads/asoft/tools/diff/out/errors.asoft.txt	2026-08-29 22:17:27
+@@ -2,4 +2,4 @@
+ 20
+ TRAPPED 5
+ 
+-?OUT OF DATA ERROR IN 250
++?OUT OF DATA IN 250

@@ -1,7 +1,25 @@
 # Applesoft BASIC for DOS
 
-An Applesoft interpreter that keeps the ROM's bugs on purpose, with a console
-front end and a Turbo Vision one, running in the browser under js-dos.
+Somewhere in a better 1990, a shrink-wrapped box on the shelf between
+GW-BASIC and QuickBASIC reads **APPLESOFT BASIC — now for the IBM PC**, and
+the market never recovers. Two significant characters per variable name.
+Six hi-res colours, two of which the display invents and two of which are
+white. Floating point that answers `.1 + .2` with `.3` and has the mantissa
+to back it up. An error handler that leaks, a tokenizer that eats your
+variable names, and a `FOR` loop that always runs at least once whether you
+asked or not. QuickBASIC gave you named subroutines; Applesoft gives you
+`GOSUB 1000` and the conviction that you will remember what is at line 1000.
+This is that product, shipped thirty-five years late as a real 16-bit MZ
+executable.
+
+The joke stops at the implementation. This is the complete Applesoft
+language — the full parser and keyword table, 5-byte Microsoft Binary Format
+floats with Applesoft's exact `PRINT` formatting, strings with real garbage
+collection, arrays, `ONERR`, `DEF FN`, shape tables, lo-res and hi-res
+graphics plotted into an honest 64K memory image — as a portable C89 console
+program, a 16-bit DOS binary (Open Watcom), and a Turbo Vision IDE, all
+verified against the genuine Applesoft ROM (see below) and running in the
+browser under js-dos.
 
 **Try it: <https://keithadler.github.io/asoft/>** — one click loads and runs
 any of the sample programs.
@@ -15,14 +33,14 @@ FLOATS:
 ```
 
 `.1 + .2` prints `.3` because Applesoft carried nine significant digits, not
-because anything was rounded for show. `HTAB 10 : PRINT POS(0)` answers 11,
-which is wrong by two and is what the ROM does. Trapping errors in a loop
-kills the program with `?OUT OF MEMORY` after exactly sixty of them, because
-`ONERR` leaks a stack frame every time. All of that is reproduced deliberately
-and can be switched off individually.
+because anything was rounded for show. Trapping errors in a loop kills the
+program with `?OUT OF MEMORY ERROR` after exactly sixty of them, because
+`ONERR` leaks a stack frame every time. All of that is reproduced
+deliberately and can be switched off individually.
 
-The console, running the compatibility checks — nine-digit floats, the POS
-bug, and the ONERR leak dying on schedule:
+The compatibility checks, rendered to the text page the way a composite
+monitor would have shown them — the fringes on the letters are the NTSC
+colour rules at work:
 
 ![The console front end running TESTS.BAS](web/shots/console.png)
 
@@ -106,6 +124,44 @@ measurements.
 Replaying `TESTS.BAS` currently matches the reference on 61 of 62 lines, and
 the wide regression matches on all 33.
 
+## Verified against the genuine ROM
+
+The reference build pins regressions, but it is a binary of this same
+project's ancestor, not an Apple II. `tools/diff/` closes that gap: it runs a
+corpus of Applesoft programs through this interpreter and through the real
+Applesoft ROM — [bobbin](https://github.com/micahcowan/bobbin), a terminal
+Apple \]\[+ emulator with the genuine firmware — and diffs the output.
+
+```sh
+BOBBIN=/path/to/bobbin python3 tools/diff/run.py
+```
+
+Nineteen programs cover number formatting, transcendentals, strings, control
+flow, `DATA`/`READ`, `DEF FN`, arrays, `POS`/`HTAB`, `ONERR` and the error
+codes at `PEEK(222)`, the tokenizer, `FRE(0)` and the zero-page pointers, and
+a few real workloads. **Sixteen of the nineteen are byte-identical to the
+ROM**, error messages, memory sizes and `?BAD SUBSCRIPT ERROR IN 60`
+included. The harness has already earned its keep twice:
+
+- Error messages here were missing the ROM's ` ERROR` suffix —
+  `?OUT OF DATA IN 250` against the machine's `?OUT OF DATA ERROR IN 250`.
+  Fixed.
+- The "HTAB off-by-two" misfeature this project used to reproduce **does not
+  exist**. The genuine ROM answers `HTAB 10 : PRINT POS(0)` with 9, exactly
+  where it should be. The bug was folklore, faithfully implemented; it has
+  been removed, and `POS` now matches the hardware.
+
+The three that still differ, and why:
+
+- **`SIN`/`COS`/`ATN`** disagree with the ROM in the ninth significant digit
+  on some arguments — this build computes them in host precision and rounds,
+  where the ROM ran its own polynomials in 5-byte floats. The ROM's
+  `ATN(1) * 4` is `3.14159266`; this build says `3.14159265`, which is
+  correct and therefore wrong. Matching bit-for-bit means reimplementing the
+  ROM's polynomial evaluation in MBF arithmetic.
+- **`RND`** is not the ROM's generator, so seeded sequences differ.
+  `RND(0)` repeating the last value does match.
+
 ## Known differences from the reference build
 
 Deliberate, except the first:
@@ -129,13 +185,11 @@ single byte of collector residue inside a binary whose source is gone.
 ## The bugs, and switching them off
 
 `bug_enabled[]` in `src/bugs.c`, the **Bugs** menu in the Turbo Vision build,
-or `./build/asoft -n` to disable all four.
+or `./build/asoft -n` to disable all three.
 
 - **ONERR leak.** Every trapped error pushes a frame that is never popped.
   240 bytes of control stack, 4 bytes a time, so the sixty-first error is
   fatal. `CALL -3288` pops one, which is what `ONERRFIX.BAS` demonstrates.
-- **HTAB off-by-two.** `HTAB n` leaves the cursor at column n+1, not n-1.
-  `POS` then reports that position honestly.
 - **MBF rounding.** Results are rounded to a 32-bit mantissa after every
   operation. Switch it off and `.1 + .2` stops printing as `.3`.
 - **Greedy tokenizer.** Keywords match anywhere, so `TOTAL = 5` tokenizes as

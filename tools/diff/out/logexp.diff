@@ -1,0 +1,7 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/logexp.rom.txt	2026-08-29 22:17:05
++++ /Users/keith/Downloads/asoft/tools/diff/out/logexp.asoft.txt	2026-08-29 22:17:05
+@@ -8,3 +8,4 @@
+ 1000
+ 1
+ .04
++]

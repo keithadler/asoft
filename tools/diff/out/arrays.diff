@@ -1,0 +1,7 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/arrays.rom.txt	2026-08-29 22:17:03
++++ /Users/keith/Downloads/asoft/tools/diff/out/arrays.asoft.txt	2026-08-29 22:17:03
+@@ -2,3 +2,4 @@
+ 0
+ 15 3 9
+ MID[]
++]

@@ -1,0 +1,7 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/intfn.rom.txt	2026-08-29 22:17:05
++++ /Users/keith/Downloads/asoft/tools/diff/out/intfn.asoft.txt	2026-08-29 22:17:05
+@@ -8,3 +8,4 @@
+ 3.25
+ 32767
+ -1E+09
++]

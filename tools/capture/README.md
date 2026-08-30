@@ -47,7 +47,10 @@ assumed:
 - **The prompt does not count.** `PRINT 1,2,3` puts the `2` at column 16, not
   17, so `]` is written outside the column model.
 - **HTAB is off by two and prints nothing.** After `HTAB 10` the cursor reads
-  11 and the next `PRINT` still wraps 29 characters later.
+  11 and the next `PRINT` still wraps 29 characters later. This one turned out
+  to be the reference build's own bug, not the ROM's: the genuine Applesoft
+  ROM reads 9 there (see `tools/diff/`), so this build follows the hardware
+  and no longer reproduces it.
 - **Errors always break the line first**, even at column zero.
 - **Memory accounting.** Program storage is byte-exact line by line; scalars
   cost 7 bytes, `DIM B(10)` costs 62, string literals cost nothing, `READ`

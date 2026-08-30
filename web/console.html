@@ -86,8 +86,9 @@
   <details><summary><code>PRINT .1+.2</code> says <code>.3</code></summary>
     <p>Applesoft carried nine significant digits in its 5-byte floats,
        so the answer really did come out clean. Nothing is rounded for show.</p></details>
-  <details><summary><code>HTAB 10: PRINT POS(0)</code> says <code>11</code></summary>
-    <p>Off by two, exactly as the ROM was.</p></details>
+  <details><summary><code>PRINT 2^33 = 2^33 + 1</code> says <code>1</code></summary>
+    <p>The 5-byte float's mantissa is 32 bits, so the +1 falls off the end
+       and the two are equal — verified against the genuine ROM.</p></details>
   <details><summary><code>10 TOTAL=5</code> lists as <code>TO TAL = 5</code></summary>
     <p>The tokenizer finds the keyword <code>TO</code> inside the variable name.
        Real Applesoft programmers learned to avoid such names.</p></details>
@@ -138,7 +139,7 @@ for (const [name, desc] of PROGRAMS) {
 let emu = null, bootAt = 0;
 Dos(document.getElementById("dos"), {
   pathPrefix: "vendor/jsdos/emulators/",
-  url: "asoft.jsdos?v=d76adb24136f",
+  url: "asoft.jsdos?v=a3142f61a496",
   renderAspect: "4/3",
   autoStart: true,
   kiosk: true,

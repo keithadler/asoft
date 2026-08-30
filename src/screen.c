@@ -109,7 +109,7 @@ void scr_htab(int n)
 {
     /* HTAB is 1-based, so column n-1. The ROM lands two columns further
      * right than that, which is why HTAB 10 : PRINT starts at column 11. */
-    int target = bug_enabled[BUG_HTAB_OFFBYTWO] ? n + 1 : n - 1;
+    int target = n - 1;
 
     if (target < 0)
         target = 0;

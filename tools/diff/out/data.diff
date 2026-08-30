@@ -1,0 +1,7 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/data.rom.txt	2026-08-29 22:17:03
++++ /Users/keith/Downloads/asoft/tools/diff/out/data.asoft.txt	2026-08-29 22:17:03
+@@ -3,3 +3,4 @@
+ A,B
+ 42
+ 1
++]

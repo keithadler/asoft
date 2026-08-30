@@ -1,0 +1,12 @@
+10 E = 1: T = 1
+20 FOR N = 1 TO 12
+30 T = T / N
+40 E = E + T
+50 NEXT
+60 PRINT E
+70 PRINT ATN(1) * 4
+80 H = 0
+90 FOR N = 1 TO 100
+100 H = H + 1 / N
+110 NEXT
+120 PRINT H

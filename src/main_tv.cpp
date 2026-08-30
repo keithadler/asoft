@@ -432,7 +432,6 @@ TMenuBar *TAsoftApp::initMenuBar(TRect r)
             *new TMenuItem("~B~reak", cmBreakProgram, kbCtrlC, hcNoContext, "Ctrl-C") +
         *new TSubMenu("B~u~gs", kbAltU) +
             *new TMenuItem("~O~NERR leak", cmToggleBug + BUG_ONERR_LEAK, kbNoKey) +
-            *new TMenuItem("~H~TAB off-by-two", cmToggleBug + BUG_HTAB_OFFBYTWO, kbNoKey) +
             *new TMenuItem("~M~BF rounding", cmToggleBug + BUG_MBF_ROUNDING, kbNoKey) +
             *new TMenuItem("~G~reedy tokenizer", cmToggleBug + BUG_GREEDY_TOKENIZER, kbNoKey) +
         *new TSubMenu("D~e~bug", kbAltE) +

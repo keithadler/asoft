@@ -1,11 +1,10 @@
 #include "bugs.h"
 
 /* All on: the default is the ROM, warts included. */
-unsigned char bug_enabled[BUG_COUNT] = { 1, 1, 1, 1 };
+unsigned char bug_enabled[BUG_COUNT] = { 1, 1, 1 };
 
 static const char *const names[BUG_COUNT] = {
     "ONERR leak",
-    "HTAB off-by-two",
     "MBF rounding",
     "Greedy tokenizer"
 };

@@ -11,16 +11,16 @@
 | ]RUN                                       FRETOP   $9600                      |
 | HI                                         HIMEM    $9600                      |
 | BETA                                       FRE(0)   36325                      |
-| ]HTAB 10: PRINT POS(0)                                                         |
-| 11                                         Control stack      0/240            |
-| ]HTAB 10: PRINT POS(0)                                                         |
-| 9                                          Bugs active                         |
+| ]PRINT 2^33 = 2^33 + 1                                                         |
+| 1                                          Control stack      0/240            |
+| ]PRINT 2^33 = 2^33 + 1                                                         |
+| 0                                          Bugs active                         |
 | ]RUN                                         ONERR leak         ON             |
-| HI                                           HTAB off-by-two    ON             |
-| EDITED                                       MBF rounding       ON             |
-| ]HTAB 10: PRINT POS(0)                       Greedy tokenizer   ON             |
-| 11                                                                             |
-| ]                                          Last error   none                   |
+| HI                                           MBF rounding       ON             |
+| EDITED                                       Greedy tokenizer   ON             |
+| ]PRINT 2^33 = 2^33 + 1                                                         |
+| 1                                          Last error   none                   |
+| ]                                                                              |
 |                                                                                |
 |                                                                                |
 |                                                                                |
@@ -41,5 +41,5 @@
 |                                                                                |
 |                                                                                |
 |                                                                                |
-| HTAB off-by-two is now ON                                                      |
+| MBF rounding is now ON                                                         |
 +--------------------------------------------------------------------------------+

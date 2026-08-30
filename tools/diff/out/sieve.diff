@@ -1,0 +1,6 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/sieve.rom.txt	2026-08-29 22:17:31
++++ /Users/keith/Downloads/asoft/tools/diff/out/sieve.asoft.txt	2026-08-29 22:17:31
+@@ -1,2 +1,2 @@
+ 2 3 5 7 11
+-?BAD SUBSCRIPT ERROR IN 60
++?BAD SUBSCRIPT IN 60

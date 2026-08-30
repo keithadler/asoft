@@ -1,0 +1,5 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/sort.rom.txt	2026-08-29 22:17:08
++++ /Users/keith/Downloads/asoft/tools/diff/out/sort.asoft.txt	2026-08-29 22:17:08
+@@ -1 +1,2 @@
+ -100 -3 .5 1 3.25 5 7 12 88 99
++]

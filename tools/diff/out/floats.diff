@@ -1,0 +1,7 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/floats.rom.txt	2026-08-29 22:17:04
++++ /Users/keith/Downloads/asoft/tools/diff/out/floats.asoft.txt	2026-08-29 22:17:04
+@@ -22,3 +22,4 @@
+ 1000000
+ 1E-04
+ .999999999
++]

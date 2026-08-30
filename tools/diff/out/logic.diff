@@ -1,0 +1,7 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/logic.rom.txt	2026-08-29 22:17:06
++++ /Users/keith/Downloads/asoft/tools/diff/out/logic.asoft.txt	2026-08-29 22:17:06
+@@ -9,3 +9,4 @@
+ 19
+ 4
+ 10
++]

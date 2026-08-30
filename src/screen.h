@@ -37,7 +37,7 @@ void scr_newline(void);
 void scr_comma(void);            /* advance to the next 16-column zone */
 void scr_spc(int n);
 void scr_tab(int col);           /* TAB(n): move right to column n */
-void scr_htab(int n);            /* HTAB n, honouring BUG_HTAB_OFFBYTWO */
+void scr_htab(int n);            /* HTAB n */
 void scr_vtab(int n);
 void scr_home(void);
 int  scr_col(void);              /* 0-based; what POS(0) reports */

@@ -14,18 +14,14 @@
  * which is what ONERRFIX.BAS demonstrates. */
 #define BUG_ONERR_LEAK      0
 
-/* HTAB n leaves the cursor two columns right of where it should: HTAB 10
- * puts it at column 11 (0-based), not 9. POS then honestly reports 11. */
-#define BUG_HTAB_OFFBYTWO   1
-
 /* Every arithmetic result is rounded to MBF's 32-bit mantissa. Switching it
  * off keeps full host precision, so .1 + .2 stops printing as .3. */
-#define BUG_MBF_ROUNDING    2
+#define BUG_MBF_ROUNDING    1
 
 /* Keywords are matched anywhere, so TOTAL tokenizes as TO + TAL. */
-#define BUG_GREEDY_TOKENIZER 3
+#define BUG_GREEDY_TOKENIZER 2
 
-#define BUG_COUNT 4
+#define BUG_COUNT 3
 
 extern unsigned char bug_enabled[BUG_COUNT];
 const char *bug_name(int which);

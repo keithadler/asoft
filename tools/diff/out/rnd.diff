@@ -1,0 +1,10 @@
+--- /Users/keith/Downloads/asoft/tools/diff/out/rnd.rom.txt	2026-08-29 22:36:29
++++ /Users/keith/Downloads/asoft/tools/diff/out/rnd.asoft.txt	2026-08-29 22:36:29
+@@ -1,4 +1,4 @@
+-.210992191
+-.117125427
+-.612688521
++.216888428
++.316314697
++.253662109
+ 1
