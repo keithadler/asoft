@@ -76,3 +76,11 @@ Open <http://localhost:8000/>. `file://` will not work — js-dos needs http.
   `LOAD TESTS.BAS` from the File menu finds the preloaded programs.
 - Mouse is enabled and `autolock=false`, so Turbo Vision's menus, dialogs and window
   dragging work with the browser pointer without capturing it.
+
+## The Command key
+
+js-dos maps browser key code 91 to `[`. That code belongs to the Command
+key on a Mac and the Windows key on a PC, so a screenshot shortcut or a
+Cmd+Tab used to type a bracket into DOS. `nometa.js`, loaded by every
+page that embeds the emulator, swallows the modifier before js-dos sees
+it. The real `[` key (code 219) is unaffected.
