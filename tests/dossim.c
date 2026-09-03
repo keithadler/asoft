@@ -74,6 +74,15 @@ static void snap(const char *name)
     }
 }
 
+/* "#waitsnap NAME KEYS": when the program next blocks on the keyboard,
+ * snapshot the screen it is showing as NAME, then type KEYS. */
+static char waitsnap_name[64], waitsnap_keys[64];
+static void waitsnap(void)
+{
+    snap(waitsnap_name);
+    shim_type(waitsnap_keys);
+}
+
 int main(int argc, char **argv)
 {
     char line[512];
@@ -99,6 +108,13 @@ int main(int argc, char **argv)
             line[--n] = '\0';
         if (strncmp(line, "#snap ", 6) == 0) { snap(line + 6); continue; }
         if (strncmp(line, "#keys ", 6) == 0) { strcpy(deferred, line + 6); continue; }
+        if (strncmp(line, "#waitsnap ", 10) == 0) {
+            char *sp = strchr(line + 10, ' ');
+            if (sp) { *sp = '\0'; strcpy(waitsnap_keys, sp + 1); } else waitsnap_keys[0] = '\0';
+            strcpy(waitsnap_name, line + 10);
+            shim_on_empty(waitsnap);
+            continue;
+        }
         if (line[0] == '#') continue;
 
         scr_raw_putc(scr_prompt());

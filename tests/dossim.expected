@@ -205,30 +205,31 @@ PR#0 PUTS IT BACK TO FORTY.
 
 QUIT - SCORE 0
 
+--- loreswait: mode 19 (build/dossim-loreswait.ppm)
 --- lores: mode 1, 40 columns, cursor 25,0
-""""""""""""""""""""""""""""""""""""""""
-3333333333333333333333333333333333333333
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
-****************************************
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
-]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
-nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
-????????????????????????????????????????
-````````````````````````````````````````
-````````````````````````````````````````
-````````````````````````````````````````
-````````````````````````````````````````
-QUIT - SCORE 0
-]LOAD web/bundle/LORES.BAS
-]RUN
 SCRN READS BACK: 0 1 2 3 4 5 6 7 8 9 10
-12 13 14 15 0
+11 12 13 14 15
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 --- window: mode 1, 40 columns, cursor 25,0
 STATUS LINE
@@ -381,5 +382,5 @@ SCREEN AGAIN
 
 
 --- wide-mixed: mode 19 (build/dossim-wide-mixed.ppm)
---- end: mode 3, 20 mode sets, 23 snapshots
+--- end: mode 3, 20 mode sets, 24 snapshots
 --- printer.txt: TO PRINTER

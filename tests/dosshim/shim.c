@@ -54,10 +54,16 @@ void shim_type(const char *s)
     while (*s && ktail < (int)sizeof(keys))
         keys[ktail++] = *s++;
 }
-int shim_keys_left(void) { return (pushed >= 0) + (ktail - khead); }
-int kbhit(void) { return shim_keys_left() > 0; }
+static void (*on_empty)(void);
+void shim_on_empty(void (*fn)(void)) { on_empty = fn; }
+static int keys_left(void) { return (pushed >= 0) + (ktail - khead); }
+int shim_keys_left(void) { return keys_left(); }
+int kbhit(void) { return keys_left() > 0; }
 int getch(void)
 {
+    /* Only the blocking read fires the hook: the interpreter polls kbhit
+     * between statements, and that must not count as waiting. */
+    if (keys_left() == 0 && on_empty) { void (*fn)(void) = on_empty; on_empty = 0; fn(); }
     if (pushed >= 0) { int c = pushed; pushed = -1; return c; }
     if (khead < ktail) return (unsigned char)keys[khead++];
     /* Nothing scripted: the harness never asks for more than it typed. */

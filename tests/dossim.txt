@@ -38,6 +38,7 @@ LOAD web/bundle/SNAKE.BAS
 RUN
 #snap snake
 LOAD web/bundle/LORES.BAS
+#waitsnap loreswait x
 RUN
 #snap lores
 TEXT: HOME: POKE 34,20: PRINT "STATUS LINE": VTAB 2: PRINT "KEPT"
