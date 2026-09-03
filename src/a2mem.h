@@ -38,6 +38,24 @@
 #define KBD_DATA    0xC000
 #define KBD_STROBE  0xC010
 
+/* The text window and cursor, where the ROM kept them and where programs
+ * POKEd them: POKE 34,20 for a status line, POKE 33,33 to stop INPUT
+ * wrapping, PEEK(36) for the column. screen.c keeps its state here. */
+#define ZP_WNDLFT   0x20          /* left edge of the text window */
+#define ZP_WNDWDTH  0x21          /* its width */
+#define ZP_WNDTOP   0x22          /* first row */
+#define ZP_WNDBTM   0x23          /* one past the last row */
+#define ZP_CH       0x24          /* cursor column, within the window */
+#define ZP_CV       0x25          /* cursor row, absolute */
+#define ZP_HCOLOR1  0x1C          /* the colour byte HPLOT last used, aligned to its byte */
+#define ZP_COLOR    0x30          /* COLOR= n, stored as n * 17 */
+#define ZP_INVFLG   0x32          /* $FF normal, $3F inverse, $7F flash */
+#define ZP_PROMPT   0x33          /* the prompt character, "]" */
+#define ZP_RUNFLAG  0xD6          /* bit 7 set: every command is RUN */
+#define ZP_HCOLOR   0xE4          /* HCOLOR= as the byte pattern it plots */
+#define ZP_HPAG     0xE6          /* high byte of the page HPLOT draws on */
+#define SPKR        0xC030        /* the speaker: any access clicks it */
+
 #define ZP_SCALE    0xE7          /* SCALE= */
 #define ZP_SHAPE    0xE8          /* pointer to the shape table */
 #define ZP_COLLISION 0xEA         /* bumped whenever DRAW hits a lit pixel */
@@ -71,6 +89,7 @@ void   a2_setword(a2addr a, a2addr v);
  * not fit in the 16-bit int of the DOS build -- LIST's upper bound of 65535
  * silently became -1 and listed nothing until this was widened. */
 a2addr a2_prog_first(void);                    /* 0 when empty */
+a2addr a2_prog_end(void);                      /* first byte past the program */
 a2addr a2_prog_next(a2addr line);              /* 0 at end */
 long   a2_prog_lineno(a2addr line);
 const unsigned char *a2_prog_tokens(a2addr line);
@@ -92,6 +111,10 @@ a2addr a2_var(const char *name, int type, int create);
  * err is set to an ERR_* code on failure (bad subscript, redim). */
 a2addr a2_array(const char *name, int type, const int *idx, int ndims,
                 int create, int *err);
+
+/* DIM: create it with these highest subscripts. Fails with ERR_OUTOFMEM. */
+a2addr a2_array_dim(const char *name, int type, const int *dims, int ndims,
+                    int *err);
 
 /* Has this array been created yet, by DIM or by being used? DIM needs to
  * know, because dimensioning one twice is an error rather than a resize. */

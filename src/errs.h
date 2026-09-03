@@ -25,6 +25,17 @@
 #define ERR_UNDEFFUNC     224
 #define ERR_REENTER       254
 #define ERR_BREAK         255
+/* DOS 3.3's, not the ROM's, with the codes DOS handed ONERR. They print
+ * bare -- "FILE NOT FOUND", no question mark, no ERROR -- as DOS printed
+ * them. */
+#define ERR_WRITEPROT       4
+#define ERR_ENDOFDATA       5
+#define ERR_FILENOTFOUND    6
+#define ERR_IOERROR         8
+#define ERR_DOSSYNTAX      11
+#define ERR_NOBUFFERS      12
+#define ERR_TOOLARGE       14
+#define ERR_IS_DOS(c)   ((c) >= 1 && (c) <= 15)
 
 /* "DIVISION BY ZERO" for 133, and so on. Never returns NULL. */
 const char *err_message(int code);

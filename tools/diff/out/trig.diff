@@ -1,5 +1,5 @@
---- /Users/keith/Downloads/asoft/tools/diff/out/trig.rom.txt	2026-08-29 22:36:31
-+++ /Users/keith/Downloads/asoft/tools/diff/out/trig.asoft.txt	2026-08-29 22:36:31
+--- /Users/admin/asoft/tools/diff/out/trig.rom.txt	2026-09-02 17:54:16
++++ /Users/admin/asoft/tools/diff/out/trig.asoft.txt	2026-09-02 17:54:16
 @@ -8,10 +8,10 @@
  .540302306
  .785398163

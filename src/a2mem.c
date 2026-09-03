@@ -55,6 +55,9 @@ void a2_clear_vars(void)
  * next-pointer lives. Deriving the end from VARTAB rather than by following
  * next-pointers means the walk still works while those pointers are stale,
  * which is exactly the situation relink() has to cope with. */
+static a2addr prog_end(void);
+a2addr a2_prog_end(void) { return prog_end(); }
+
 static a2addr prog_end(void)
 {
     return a2_word(ZP_VARTAB) - 2;
@@ -232,6 +235,48 @@ int a2_array_exists(const char *name, int type)
     return 0;
 }
 
+/* Bytes per element: a real is its five-byte float, a string its three-byte
+ * descriptor, an integer its two bytes. */
+static int elem_size(int type)
+{
+    return type == VT_STR ? 3 : type == VT_INT ? 2 : 5;
+}
+
+/* Create an array with the given highest subscript in each dimension: what
+ * DIM does with the sizes it was given, and what first use does with ten. */
+a2addr a2_array_dim(const char *name, int type, const int *dims, int ndims,
+                    int *err)
+{
+    unsigned char want[2];
+    a2addr p, strend = a2_word(ZP_STREND);
+    long count = 1;
+    int hdr = 5 + 2 * ndims;
+    long bytes;
+    int i;
+
+    *err = 0;
+    name_bytes(name, type, want);
+    for (i = 0; i < ndims; i++) {
+        if (dims[i] < 0) { *err = ERR_BADSUBSCRIPT; return 0; }
+        count *= (long)dims[i] + 1;
+    }
+    bytes = hdr + count * elem_size(type);
+    if (strend + bytes >= (long)a2_word(ZP_FRETOP)) {
+        *err = ERR_OUTOFMEM;
+        return 0;
+    }
+    p = strend;
+    a2mem[p] = want[0];
+    a2mem[p + 1] = want[1];
+    a2_setword(p + 2, (a2addr)bytes);
+    a2mem[p + 4] = (unsigned char)ndims;
+    for (i = 0; i < ndims; i++)
+        a2_setword(p + 5 + 2 * i, (a2addr)(dims[i] + 1));
+    memset(&a2mem[p + hdr], 0, (size_t)(count * elem_size(type)));
+    a2_setword(ZP_STREND, (a2addr)(strend + bytes));
+    return p;
+}
+
 a2addr a2_array(const char *name, int type, const int *idx, int ndims,
                 int create, int *err)
 {
@@ -261,7 +306,7 @@ a2addr a2_array(const char *name, int type, const int *idx, int ndims,
                 }
                 off = off * size + idx[i];
             }
-            return (a2addr)(p + 5 + 2 * nd + off * 5);
+            return (a2addr)(p + 5 + 2 * nd + off * elem_size(type));
         }
     }
 
@@ -270,31 +315,16 @@ a2addr a2_array(const char *name, int type, const int *idx, int ndims,
         return 0;
     }
 
-    /* Undimensioned arrays get 0..10 in every subscript, as the ROM does. */
+    /* An array used before it is dimensioned gets 0..10 in every subscript,
+     * as the ROM does -- not the subscript it was first used with, which is
+     * what a program doing F(1,1)=0 then F(1,2)=0 relies on. */
     {
-        long count = 1;
-        int hdr = 5 + 2 * ndims;
-        long bytes;
-        for (i = 0; i < ndims; i++) {
-            if (idx[i] < 0) { *err = ERR_BADSUBSCRIPT; return 0; }
-            count *= (long)idx[i] + 1;
-        }
-        bytes = hdr + count * 5;
-        if (strend + bytes >= (long)a2_word(ZP_FRETOP)) {
-            *err = ERR_OUTOFMEM;
+        int dims[8];
+        for (i = 0; i < ndims && i < 8; i++)
+            dims[i] = 10;
+        if (!a2_array_dim(name, type, dims, ndims, err))
             return 0;
-        }
-        p = strend;
-        a2mem[p] = want[0];
-        a2mem[p + 1] = want[1];
-        a2_setword(p + 2, (a2addr)bytes);
-        a2mem[p + 4] = (unsigned char)ndims;
-        for (i = 0; i < ndims; i++)
-            a2_setword(p + 5 + 2 * i, (a2addr)(idx[i] + 1));
-        memset(&a2mem[p + hdr], 0, (size_t)(count * 5));
-        a2_setword(ZP_STREND, (a2addr)(strend + bytes));
-        /* The caller asked for element idx, which after creation is the last
-         * one; recurse now that the block exists. */
+        /* Recurse now that the block exists. */
         return a2_array(name, type, idx, ndims, 0, err);
     }
 }
@@ -309,10 +339,10 @@ void a2_str_get(a2addr slot, a2str *s)
 
 void a2_str_put(a2addr slot, const a2str *s)
 {
+    /* Three bytes, whether the slot is a scalar's five or an array's
+     * three: a string array packs its descriptors without a gap. */
     a2mem[slot] = s->len;
     a2_setword(slot + 1, s->addr);
-    a2mem[slot + 3] = 0;
-    a2mem[slot + 4] = 0;
 }
 
 a2addr a2_str_alloc(int len)
@@ -363,7 +393,7 @@ void a2_gc(void)
                 int nd = a2mem[p + 4];
                 a2addr d = p + 5 + 2 * nd;
                 a2addr endb = p + a2_word(p + 2);
-                for (; d < endb; d += 5) {
+                for (; d < endb; d += 3) {
                     a2addr a = a2_word(d + 1);
                     if (a2mem[d] && a > strend2 && a < dest && a >= best) {
                         best = a;

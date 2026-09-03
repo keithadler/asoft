@@ -17,7 +17,14 @@ static const struct { int code; const char *msg; } table[] = {
     { ERR_FORMULATOOCOMPLEX,"FORMULA TOO COMPLEX" },
     { ERR_UNDEFFUNC,        "UNDEF'D FUNCTION" },
     { ERR_REENTER,          "REENTER" },
-    { ERR_BREAK,            "BREAK" }
+    { ERR_BREAK,            "BREAK" },
+    { ERR_WRITEPROT,        "WRITE PROTECTED" },
+    { ERR_ENDOFDATA,        "END OF DATA" },
+    { ERR_FILENOTFOUND,     "FILE NOT FOUND" },
+    { ERR_IOERROR,          "I/O ERROR" },
+    { ERR_DOSSYNTAX,        "SYNTAX ERROR" },
+    { ERR_NOBUFFERS,        "NO BUFFERS AVAILABLE" },
+    { ERR_TOOLARGE,         "PROGRAM TOO LARGE" }
 };
 
 const char *err_message(int code)

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>bench</title>
+<link rel="stylesheet" href="vendor/jsdos/js-dos.css"><script src="vendor/jsdos/js-dos.js"></script>
+<style>html,body{height:100%;margin:0;background:#000}#dos{height:100vh}</style></head>
+<body><div id="dos"></div>
+<script>
+// Runs ASOFT.EXE -b BENCH.BAS under DOSBox at the cycle count named in the
+// URL: bench.html?cycles=20000. The result line stays on the DOS screen.
+const cyc = new URLSearchParams(location.search).get("cycles") || "20000";
+Dos(document.getElementById("dos"), { pathPrefix: "vendor/jsdos/emulators/", url: "bench-" + cyc + ".jsdos?v=" + Date.now(),
+  autoStart: true, kiosk: true, onEvent: (e, arg) => { if (e === "ci-ready") window.__ci = arg; } });
+</script></body></html>

@@ -97,15 +97,28 @@
        after exactly sixty of them. <code>LOAD ONERRFIX.BAS</code> shows the leak
        and the classic <code>CALL -3288</code> workaround.</p></details>
 
-  <h2>Graphics tips</h2>
-  <p class="note">Hi-res graphics hide the text screen, as the Apple did.
-     Type <code>TEXT</code> blind and press return to come back —
-     or just click another program.</p>
+  <h2>The screen is the Apple's</h2>
+  <p class="note">Forty columns, and eighty after <code>PR#3</code>
+     (<code>PR#0</code> comes back). <code>GR</code> and <code>HGR</code> keep
+     four lines of text under the picture; <code>HGR2</code> is the whole
+     screen, so there you type <code>TEXT</code> blind, as you did. The text
+     page lives at 1024, so <code>POKE 1024,193</code> puts an A in the corner
+     and <code>POKE -16302,0</code> flips a picture to full screen. The rest
+     of zero page is real too: <code>POKE 34,20</code> for a status line,
+     <code>POKE 50,63</code> for inverse, <code>PEEK(-16336)</code> for the
+     speaker.</p>
+
+  <h2>DOS 3.3</h2>
+  <p class="note">Files work the way they did: <code>PRINT CHR$(4);"OPEN
+     SCORES"</code>, then <code>WRITE</code>, <code>READ</code>,
+     <code>CLOSE</code>, and <code>CATALOG</code> typed at the prompt. They
+     live in the emulator's disk for this visit.</p>
 
   <h2>More</h2>
   <p class="note" style="margin-top:0"><a href="idedemo.html">The windowed IDE</a> —
      menus, an editor, and a Machine pane, in 80&times;43 text mode.<br>
      <a href="https://github.com/keithadler/asoft">Source on GitHub</a></p>
+  <p class="note">Applesoft and Apple II are trademarks of Apple Inc. This project is not affiliated with or endorsed by Apple.</p>
 </aside>
 <div id="typing">typing&hellip;</div>
 
@@ -139,7 +152,7 @@ for (const [name, desc] of PROGRAMS) {
 let emu = null, bootAt = 0;
 Dos(document.getElementById("dos"), {
   pathPrefix: "vendor/jsdos/emulators/",
-  url: "asoft.jsdos?v=a3142f61a496",
+  url: "asoft.jsdos?v=9804ad018a54",
   renderAspect: "4/3",
   autoStart: true,
   kiosk: true,

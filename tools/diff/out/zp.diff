@@ -1,0 +1,19 @@
+--- /Users/admin/asoft/tools/diff/out/zp.rom.txt	2026-09-02 17:53:10
++++ /Users/admin/asoft/tools/diff/out/zp.asoft.txt	2026-09-02 17:53:10
+@@ -10,13 +10,13 @@
+ 64
+ 1
+ 1
+-127
++42
+ 0
+ 2
+ 63
+-QRW
++127
+ 255
+-221
++93
+ 209
+ -300
+ 258

@@ -10,6 +10,11 @@
 static long rate = PACE_APPLE_RATE;
 static long counted;
 static long start_us;
+static int always;                /* pace from the first statement */
+static int engaged;               /* the program has read the keyboard */
+static long total;                /* statements, for the benchmark */
+
+long pace_total(void) { return total; }
 
 /* Wall clock in microseconds. DOS has no multitasking, so its clock() is wall
  * time and the 55ms tick is fine for pacing; elsewhere clock() would measure
@@ -54,6 +59,20 @@ void pace_reset(void)
 {
     counted = 0;
     start_us = pace_now_us();
+    engaged = 0;
+}
+
+void pace_set_always(int a) { always = a; }
+
+void pace_engage(void)
+{
+    if (engaged)
+        return;
+    engaged = 1;
+    /* Start the clock here, not at RUN: whatever ran flat out before this
+     * is not a debt to be slept off. */
+    counted = 0;
+    start_us = pace_now_us();
 }
 
 /* Sleep off whatever this statement was ahead by. Checking every statement
@@ -64,7 +83,8 @@ void pace_statement(void)
 {
     long behind;
 
-    if (rate <= 0)
+    total++;
+    if (rate <= 0 || !(always || engaged))
         return;
     if (++counted & 31)
         return;

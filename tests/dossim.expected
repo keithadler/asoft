@@ -1,0 +1,385 @@
+--- text40: mode 1, 40 columns, cursor 25,0
+APRINT "HELLO": PRINT 1,2,3
+HELLO
+1               2               3
+]POKE 1024,193
+]VTAB 12: HTAB 15: INVERSE: PRINT "INVER
+SE";: NORMAL: FLASH: PRINT " FLASH": NOR
+MAL
+
+
+
+
+              inverse#~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+--- text80: mode 3, 80 columns, cursor 25,0
+]PRINT "EIGHTY COLUMNS": FOR I = 1 TO 80: PRINT "-";: NEXT : PRINT 1,2,3,4,5
+EIGHTY COLUMNS
+--------------------------------------------------------------------------------
+1               2               3               4               5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- text40again: mode 1, 40 columns, cursor 25,0
+]PRINT "BACK TO FORTY"
+BACK TO FORTY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- gr: mode 19 (build/dossim-gr.ppm)
+--- aftergr: mode 1, 40 columns, cursor 25,0
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+llllllllllllllllllllqlllllllllllllllllll
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+````````````````````q```````````````````
+
+UNDER THE PICTURE
+]TEXT
+
+--- hgr: mode 19 (build/dossim-hgr.ppm)
+--- hgrfull: mode 19 (build/dossim-hgrfull.ppm)
+--- hgrmixed: mode 19 (build/dossim-hgrmixed.ppm)
+--- afterhgr: mode 1, 40 columns, cursor 25,0
+COLOR= 1: HPLOT 0,159 TO 279,0: VTAB 22:
+ PRINT "HGR MIXED TEXT"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+HGR MIXED TEXT
+]POKE -16302,0
+]POKE -16301,0
+]TEXT
+
+--- hgr2: mode 19 (build/dossim-hgr2.ppm)
+--- hgr2mixed: mode 19 (build/dossim-hgr2mixed.ppm)
+--- hgr2page1: mode 19 (build/dossim-hgr2page1.ppm)
+--- afterhgr2: mode 1, 40 columns, cursor 25,0
+
+
+
+
+
+
+
+
+
+
+
+
+
+HGR MIXED TEXT
+]POKE -16302,0
+]POKE -16301,0
+]TEXT
+]HGR2: HCOLOR= 6: HPLOT 0,0 TO 279,191:
+HPLOT 0,191 TO 279,0: PRINT "BLIND"
+BLIND
+]POKE -16301,0
+]POKE -16300,0
+]TEXT
+
+--- wide: mode 3, 80 columns, cursor 25,0
+
+--------------------------------------------------------------------------------
+
+THE COMMA ZONES ARE SIXTEEN COLUMNS WIDE, SO EIGHTY COLUMNS GIVE FIVE:
+
+N               N*N             SQR N           1/N             N!
+--------------------------------------------------------------------------------
+
+1               1               1               1               1
+2               4               1.41421356      .5              2
+3               9               1.73205081      .333333333      6
+4               16              2               .25             24
+5               25              2.23606798      .2              120
+6               36              2.44948974      .166666667      720
+7               49              2.64575131      .142857143      5040
+8               64              2.82842712      .125            40320
+9               81              3               .111111111      362880
+--------------------------------------------------------------------------------
+
+AND THE WRAP MOVES WITH IT - THIS LINE IS EXACTLY EIGHTY CHARACTERS LONG.....|WR
+APPED
+
+PR#0 PUTS IT BACK TO FORTY.
+
+--- snake: mode 1, 40 columns, cursor 25,0
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````m```````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+
+
+
+QUIT - SCORE 0
+
+--- lores: mode 1, 40 columns, cursor 25,0
+""""""""""""""""""""""""""""""""""""""""
+3333333333333333333333333333333333333333
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+****************************************
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+????????????????????????????????????????
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+````````````````````````````````````````
+QUIT - SCORE 0
+]LOAD web/bundle/LORES.BAS
+]RUN
+SCRN READS BACK: 0 1 2 3 4 5 6 7 8 9 10
+12 13 14 15 0
+
+--- window: mode 1, 40 columns, cursor 25,0
+STATUS LINE
+KEPT
+]FOR I = 1 TO 6: PRINT "SCROLLING ";I: N
+EXT
+SCROLLING 1
+SCROLLING 2
+SCROLLING 3
+SCROLLING 4
+SCROLLING 5
+SCROLLING 6
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- wleft: mode 1, 40 columns, cursor 25,0
+LEFT HALF           TOPIGHT-HAND WINDOW
+                    OF TWENTY COLUMNS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- clreol: mode 1, 40 columns, cursor 25,0
+
+
+ABCX
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- clreop: mode 1, 40 columns, cursor 25,0
+
+
+ABCX
+]VTAB 5: PRINT "ROW FIVE": PRINT "ROW SI
+ROW EOP
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- prompt: mode 1, 40 columns, cursor 25,0
+
+
+ABCX
+]VTAB 5: PRINT "ROW FIVE": PRINT "ROW SI
+ROW EOP
+]POKE 51,62: INVERSE: PRINT "INV": NORMA
+L: POKE 50,63: PRINT "POKED": POKE 50,25
+5
+inv
+poked
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- printer: mode 1, 40 columns, cursor 25,0
+
+
+ABCX
+]VTAB 5: PRINT "ROW FIVE": PRINT "ROW SI
+ROW EOP
+]POKE 51,62: INVERSE: PRINT "INV": NORMA
+L: POKE 50,63: PRINT "POKED": POKE 50,25
+5
+inv
+poked
+>POKE 51,93: PR#1: PRINT "TO PRINTER": P
+R#0: PRINT "SCREEN AGAIN"
+SCREEN AGAIN
+
+
+
+
+
+
+
+
+
+
+
+--- wide-mixed: mode 19 (build/dossim-wide-mixed.ppm)
+--- end: mode 3, 20 mode sets, 23 snapshots
+--- printer.txt: TO PRINTER

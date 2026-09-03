@@ -1,9 +1,10 @@
-/* main_stdio.c - the console front end.
+/* main_stdio.c - the console front end for the host build.
  *
  * A plain REPL: print the Applesoft prompt, read a line, hand it to the
  * interpreter. Everything the program prints goes through the 40-column
  * screen model, so wrapping and POS behave the same here as they do under
- * Turbo Vision; only the destination differs.
+ * the windowed front end; only the destination differs. The DOS build has
+ * its own front end (main_dos.c), because there it has a real screen.
  */
 #include "bugs.h"
 #include "display.h"
@@ -19,12 +20,9 @@
 
 static void sink(char ch)
 {
-    /* While hi-res is up the Apple showed the graphics page, so anything
-     * printed went somewhere you could not see. The DOS build honours that;
-     * the terminal build does not, because it has only one screen. */
     if (disp_suppress_text())
         return;
-    if (ch == '\f') {
+    if (ch == SCR_CLEAR) {
         /* HOME. A dumb terminal gets a few blank lines rather than an
          * escape sequence that may not be understood. */
         int i;
@@ -32,6 +30,8 @@ static void sink(char ch)
             putchar('\n');
         return;
     }
+    if (ch == SCR_CLREOL || ch == SCR_CLREOP)
+        return;                       /* nothing a stream can clear */
     putchar(ch);
 }
 
@@ -59,16 +59,7 @@ int host_getkey(void)
 }
 
 /* Non-blocking, without disturbing the line-based input the prompt uses: the
- * terminal is put into raw mode for the length of one read and put back. On
- * DOS the runtime already offers exactly this. */
-#ifdef __DOS__
-#include <conio.h>
-#include <io.h>
-int host_pollkey(void)
-{
-    return kbhit() ? getch() : 0;
-}
-#else
+ * terminal is put into raw mode for the length of one read and put back. */
 #include <sys/select.h>
 #include <termios.h>
 #include <unistd.h>
@@ -103,35 +94,17 @@ int host_pollkey(void)
     tcsetattr(STDIN_FILENO, TCSANOW, &old);
     return (n == 1) ? c : 0;
 }
-#endif
 
 int host_echoes(void)
 {
-#ifdef __DOS__
-    return isatty(fileno(stdin));
-#else
     return isatty(STDIN_FILENO);
-#endif
 }
 
 int host_break(void)
 {
-#ifdef __DOS__
-    /* Poll the keyboard between statements: a pending Ctrl-C stops the
-     * program, the way the ROM's GETLN check did. Anything else is pushed
-     * back for the program's own polling (SNAKE reads -16384). */
-    if (kbhit()) {
-        int c = getch();
-        if (c == 3)
-            return 1;
-        ungetch(c);
-    }
-    return 0;
-#else
     /* Nothing to poll: a redirected stdin cannot deliver Ctrl-C, and an
      * interactive one lets the signal handler deal with it. */
     return 0;
-#endif
 }
 
 static void usage(const char *argv0)
@@ -140,8 +113,11 @@ static void usage(const char *argv0)
             "usage: %s [-n] [-r] [program.bas]\n"
             "  -n   disable the deliberate ROM bugs\n"
             "  -r   run the program straight away, without waiting for RUN\n"
-            "  -f   run flat out, instead of at the speed the machine ran at\n"
-            "  -s N run at N statements a second (0 is the same as -f)\n",
+            "  -f   run flat out, even when a program polls the keyboard\n"
+            "  -p   run at the machine's speed from the first statement, not\n"
+            "       only once a program polls the keyboard\n"
+            "  -s N the machine's speed is N statements a second (0 is -f)\n"
+            "  -b   benchmark: run the program flat out and report the rate\n",
             argv0);
 }
 
@@ -150,6 +126,7 @@ int main(int argc, char **argv)
     char line[512];
     const char *path = 0;
     int autorun = 0;
+    int bench = 0;
     int i;
 
     for (i = 1; i < argc; i++) {
@@ -157,6 +134,12 @@ int main(int argc, char **argv)
             pace_set_rate(0);
         } else if (strcmp(argv[i], "-s") == 0 && i + 1 < argc) {
             pace_set_rate(atol(argv[++i]));
+        } else if (strcmp(argv[i], "-b") == 0) {
+            bench = 1;
+            autorun = 1;
+            pace_set_rate(0);
+        } else if (strcmp(argv[i], "-p") == 0) {
+            pace_set_always(1);
         } else if (strcmp(argv[i], "-r") == 0) {
             autorun = 1;
         } else if (strcmp(argv[i], "-n") == 0) {
@@ -180,15 +163,35 @@ int main(int argc, char **argv)
         fprintf(stderr, "cannot open %s\n", path);
         return 1;
     }
-    if (autorun)
+    if (autorun) {
+        long t0 = pace_now_us(), s0 = pace_total();
         it_line("RUN");
+        if (bench) {
+            /* Statements a second, from the wall clock: the one number that
+             * says whether a machine can hold the Apple's pace. Printed raw,
+             * so the forty-column wrap does not cut the number in half. */
+            char buf[80];
+            long us = pace_now_us() - t0, n = pace_total() - s0;
+            double rate;
+            if (us < 1) us = 1;
+            rate = (double)n * 1000000.0 / (double)us;
+            sprintf(buf, "%ld STATEMENTS IN %ld.%03ld S: %ld A SECOND",
+                    n, us / 1000000L, (us % 1000000L) / 1000, (long)rate);
+            /* After the screen is handed back, so the report is not wiped
+             * by the mode change on DOS and lands on stdout everywhere. */
+            disp_shutdown();
+            printf("\n%s\n", buf);
+            fflush(stdout);
+            return 0;
+        }
+    }
 
     for (;;) {
         /* Repaint before prompting, so a program that drew something is
          * showing it while you decide what to type next. */
         disp_refresh();
         if (!disp_suppress_text()) {
-            scr_raw_puts("]");
+            scr_raw_putc(scr_prompt());
             fflush(stdout);
         }
         if (!host_getline(line, (int)sizeof(line)))

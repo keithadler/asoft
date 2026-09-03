@@ -1,9 +1,11 @@
 #!/bin/sh
 # Diffs a script's output against an expectation written here rather than
-# captured from the reference binary. Used only where this interpreter
-# deliberately follows real Applesoft instead of the reference -- currently
-# just NEXT with a list of variables, which real machines accept and the
-# reference does not. See README.
+# captured from the reference binary. Used where this interpreter follows
+# real Applesoft instead of the reference (NEXT with a list of variables;
+# the ROM's FOR, LOMEM:, HIMEM: and array rules in rom.txt, checked against
+# the genuine ROM by tools/diff), and for things the reference never did at
+# all (LOAD and SAVE in apple.txt, the file formats LOAD accepts in
+# formats.txt). See README.
 set -e
 cd "$(dirname "$0")/.."
 

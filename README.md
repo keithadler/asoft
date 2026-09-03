@@ -72,11 +72,14 @@ src/          the interpreter, portable C89
   token.c       the ROM keyword table, tokenizer and LIST expander
   a2mem.c       the 64K memory image: program, variables, arrays, strings, GC
   gfx.c         lo-res and hi-res plotting into real page memory
-  screen.c      the 40-column screen: wrapping, comma zones, HTAB, POS
+  screen.c      the text screen as a model: cursor, wrapping, window, PR#3
   interp.c      expressions, statements, control stack, ONERR
   panes.c       what the Machine pane says
   bugs.c        which ROM misfeatures are switched on
-  main_stdio.c  the console front end
+  main_stdio.c  the console front end for the host: a stream
+  main_dos.c    the console front end for DOS: a screen (see below)
+  console_dos.c   the text page at $400, the ROM's line editor, the keyboard
+  display_dos.c   BIOS text modes and VGA mode 13h, painted from the pages
   main_tv.cpp   the Turbo Vision front end (Borland only; see below)
 tests/        unit tests, plus transcript replays against the reference build
 tools/
@@ -104,8 +107,191 @@ how the pane contents get checked without a Borland toolchain:
 ```
 
 For the 16-bit DOS console build, see `build-dos.sh` (Open Watcom, no install
-needed). For the Turbo Vision build, see `makefile.bc` — that one needs Borland
+needed).
+
+### The DOS build's screen
+
+On DOS the console is not a stream, it is the machine's screen. The text page
+is the real one at $400 in the memory image, shown through BIOS text mode 1 --
+forty columns -- and switched to mode 3 by `PR#3`, back by `PR#0`, with the
+wrap, the comma zones and `HTAB` moving with it. `GR`, `HGR`, `HGR2` and `TEXT`
+are the video soft switches they always were ($C050-$C057), and the display
+follows the switches: mode 13h for the graphics pages, with the bottom four
+lines of the text page drawn under a `GR` or `HGR` picture in the Apple's own
+font and through the same colour rules as hi-res. `HGR2` is the whole screen,
+so there you type `TEXT` blind, as you did. The switches can be flipped by
+hand too: `POKE -16302,0` is full screen, `POKE -16301,0` mixed, `POKE
+-16299,0` shows page 2 while `HPLOT` keeps drawing on page 1.
+
+Because the page is real memory, everything the machine did with it happens
+here: `POKE 1024,193` puts an A in the corner, `GR` then `TEXT` shows the
+picture as inverse letters, a scroll moves lo-res pixels along with the text,
+`INVERSE` and `FLASH` are stored as the ROM stored them, and a trip through
+hi-res and back finds the text exactly where it was. `GR` and `TEXT` park the
+cursor on the bottom line and set the text window the way the ROM's `SETGR`
+and `SETTXT` did.
+
+`tests/dossim.c` builds this same front end on the host against stand-ins for
+the BIOS and the keyboard (`tests/dosshim/`), runs the scenario in
+`tests/dossim.txt`, and pins what landed in text video memory in
+`tests/dossim.expected`; the graphics frames come out as `build/dossim-*.ppm`.
+Run redirected -- `ASOFT.EXE < SCRIPT.TXT > OUT.TXT`, which is what the
+capture rig does -- the DOS build is a stream again.
+
+What it looks like, captured from the 16-bit binary running under DOSBox:
+
+| | |
+|---|---|
+| ![Forty columns](web/shots/dos-text.png) | ![Eighty columns](web/shots/dos-80.png) |
+| The forty-column screen, BIOS mode 1. `INVERSE` and `FLASH` stored as the ROM stored them; the `A` in the corner is `POKE 1024,193` landing on the prompt. | `PR#3`: eighty columns in mode 3, running `WIDE.BAS`. The comma zones are still sixteen wide, so there are five of them, and the wrap moved to eighty. |
+| ![GR, mixed](web/shots/dos-gr.png) | ![TEXT after GR](web/shots/dos-aftergr.png) |
+| `GR`: `SNAKE.BAS` running in lo-res, mode 13h, with the four-line text window under the picture, empty here because the game has not printed yet. | `TEXT` afterwards. The lo-res bytes are still in the page, so they come up as the inverse `@` the machine showed, with the snake's trail spelling `M` and `O`, and the game's `QUIT` line in the window. |
+| ![HGR, mixed](web/shots/dos-hgr.png) | ![DRAGON in HGR](web/shots/dos-dragon.png) |
+| `HGR` is mixed: `HGRDEMO.BAS` with the prompt and the commands that ran it showing in the bottom four lines, in the Apple's font, fringed by the same colour rules as the picture. | `DRAGON.BAS`, flat out. The prompt is back in the text window as soon as it ends, as it was on the machine. |
+| ![Full screen](web/shots/dos-full.png) | ![MOIRE](web/shots/dos-moire.png) |
+| `POKE -16302,0` after that: the mixed switch off, the whole screen to the picture. `HGR2` starts this way. | `MOIRE.BAS`, and the colour the display invents where the dots fall on alternate columns. |
+
+And the same core in the windowed front end, `ASOFTIDE.EXE`, which draws the
+page into its Apple pane with half-block characters at two pixels a cell:
+
+| | |
+|---|---|
+| ![HGRDEMO in the IDE](web/shots/ide-hgr.png) | ![DRAGON in the IDE](web/shots/ide-dragon.png) |
+| `HGRDEMO.BAS` in the IDE under DOSBox. | `DRAGON.BAS` there, about ten seconds after `RUN`. |
+
+Two frames from the simulation harness rather than the emulator, because they
+show a thing the eye cannot check from the outside:
+
+| | |
+|---|---|
+| ![GR with text under it](web/shots/sim-gr.png) | ![Page flip](web/shots/sim-pageflip.png) |
+| `GR`, a green `HLIN`, a magenta `VLIN`, and a `PRINT` in the window under them: the text is drawn through the artifact rules, so it fringes. | `HGR2` drew on page 2, then `POKE -16300,0` switched the display to page 1: page 1's earlier drawing, with page 2's text still in the window. Double buffering, the way games did it. | For the Turbo Vision build, see `makefile.bc` — that one needs Borland
 C++ 3.1 under DOS, because Turbo Vision exists for no other compiler.
+
+### DOS 3.3
+
+Applesoft had no file statements. A program printed a control-D at the start
+of a line and a DOS command after it -- `PRINT CHR$(4);"OPEN SCORES"` -- and
+DOS, sitting between BASIC and the screen, took the line for itself. `READ`
+and `WRITE` then pointed `INPUT` and `PRINT` at the file until the next
+command, or a bare control-D, put the screen and keyboard back. That layer is
+here (`src/dos33.c`), in the same place in the output path, over the host's
+files: text files as `NAME.TXT`, programs as `NAME.BAS`, binary files as
+`NAME.BIN` with DOS's own four-byte address-and-length header, all in the
+directory the interpreter runs in. `OPEN`, `CLOSE`, `READ`, `WRITE`, `APPEND`,
+`POSITION`, `DELETE`, `RENAME`, `CATALOG`, `LOAD`, `SAVE`, `RUN`, `BLOAD`,
+`BSAVE`, `PR#` and `IN#` do what they did; `LOCK`, `UNLOCK`, `VERIFY`, `MON`,
+`NOMON`, `MAXFILES`, `INIT`, `FP` and `INT` are accepted and do nothing,
+because nothing here is a floppy. `EXEC` and `CHAIN` are not there. Typed at
+the prompt, `CATALOG` and the rest work without the control-D, and `RUN NAME`
+loads and runs.
+
+The errors are DOS's, printed bare as DOS printed them and handed to `ONERR`
+with DOS's codes, because programs tested them: `FILE NOT FOUND` is 6, `END OF
+DATA` is 5, an unknown command is `SYNTAX ERROR`, 11. `OPEN` on a name that
+does not exist creates it, so a `READ` of it hits `END OF DATA` rather than
+`FILE NOT FOUND`, exactly as on the machine. `tests/run_dos33.sh` pins all of
+this, chaining included: a program that `RUN`s another through the channel.
+
+### The speaker, the printer, and the rest of zero page
+
+`PEEK(-16336)` clicks the speaker, and on DOS that is the PC speaker on port
+61h, driven the way the Apple's was: one flip per access, so a program's tone
+loops make tones. `CALL -198` and `CALL -1052` ring the ROM's bell. A program
+that touches the speaker is making sound in real time, so from then on it runs
+at the machine's pace, like one that polls the keyboard.
+
+`PR#1` sends everything printed to the printer until `PR#0`, and on DOS that
+is `PRN`, the parallel port, no driver involved. The host build appends to
+`printer.txt` instead.
+
+The screen's state lives where the ROM kept it, so the POKEs programs made
+work and the PEEKs read back what is in use: the text window at 32 to 35
+(`POKE 34,20` keeps a status line clear of the scroll, `POKE 33,33` stops
+`INPUT` wrapping), the cursor at 36 and 37, `INVFLG` at 50 (`POKE 50,63` for
+inverse), the prompt character at 51, `COLOR=` at 48 and `HCOLOR=` at 228 as
+the ROM's own bytes, the page `HPLOT` draws on at 230 (`POKE 230,64` draws on
+page 2 while page 1 shows), and the run flag at 214 (`POKE 214,255` makes
+every command `RUN`). The Monitor entry points programs `CALL`ed do what they
+did: `-936` is `HOME`, `-868` clears to the end of the line, `-958` to the end
+of the window, `-1998` and `-1994` clear the lo-res screen, `62450` and `62454`
+clear the hi-res page to black or to the current colour, `-3288` pops the frame
+`ONERR` leaked. Every other `CALL` is accepted and ignored: there is no 6502
+here to run.
+
+## What it needs, and how fast it goes
+
+**On DOS.** An 8086 or anything later: the binaries are built for 8086
+instructions only, with 8087 floating point through Open Watcom's emulator, so
+no coprocessor is needed. DOS 2.0 or later. About 256 KB of free conventional
+memory: the executable is 160 KB, the Apple's memory image is 64 KB, and the
+stack is 16 KB. A colour text adapter (CGA or later) for the console's forty
+and eighty columns, and VGA or MCGA for graphics, which is mode 13h. The
+windowed front end wants EGA or VGA for its 43-line text mode. A parallel port
+if you want `PR#1` to print; a speaker for `PEEK(-16336)`.
+
+**How fast.** `BENCH.BAS` is a fixed workload -- arithmetic, strings, an
+array, branches, then a hundred and forty hi-res lines -- and `ASOFT.EXE -b
+BENCH.BAS` runs it flat out and reports statements a second (`build/asoft -b`
+does the same on the host; `tests/run_bench.sh` keeps a floor under it).
+Measured with the 16-bit binary under DOSBox at fixed cycle counts, which is
+how DOSBox stands in for old machines:
+
+| DOSBox cycles | about the speed of | statements a second |
+|---|---|---|
+| 3,000 | a 286 at 8 MHz | 339 |
+| 20,000 | a 486 at 33 MHz | 2,289 |
+| 200,000 | a fast Pentium | 24,638 |
+| (native) | this Mac | 7,700,000 |
+
+That is a steady 8.5 DOSBox cycles per statement across the range, so the
+numbers extrapolate: an 8088 at 4.77 MHz, at roughly 300 cycles, would run
+about 35 statements a second, thirty times slower than the Apple; a 286 at 12
+MHz about 450; a 386 at 25 MHz about 1,000.
+
+**What that means.** The interpreter paces itself at the Apple's own rate,
+about a thousand statements a second, as soon as a program polls the keyboard
+or the speaker, so games and anything with sound play at the speed they were
+written for. Holding that pace needs about 1,000 statements a second of
+headroom, which is a 386 at 25 MHz or a 386SX at 33: on anything slower the
+program simply runs as fast as the machine can, and a 1983 PC with 640 KB
+runs everything but runs it slowly, an XT at a thirtieth of Apple speed, an
+AT at half. The compute-bound demos are a different question: they run flat
+out, and the dragon curve's hundred thousand statements take four seconds on a
+486, forty on a 286, and about an hour on an XT, next to two minutes on the
+Apple itself. `web/bench.html?cycles=N` runs the benchmark in the browser at
+any cycle count, which is where the table came from.
+
+## Other people's programs
+
+`tools/corpus.py` runs a directory of third-party Applesoft programs and
+reports what breaks, and `tools/dsk2bas.py` pulls the tokenised programs out
+of DOS 3.3 disk images so those can go in too. A first pass over 107 real
+programs -- AppleTrek, two Lemonade Stand ports, Oregon Trail, a KansasFest
+demo, and the BASIC Computer Games conversions -- found four things the
+interpreter got wrong, each now fixed and pinned in `tests/local/rom.txt`
+and `tests/local/formats.txt`:
+
+- A `FOR` loop left by a `GOTO` and entered again does not nest. The ROM
+  looks back through the FOR frames for one on the same variable and throws
+  it and everything above it away; without that, five of the games ran out
+  of memory on their main loop.
+- An array used before `DIM` gets 0..10 in every subscript, not the
+  subscript it was first used with. `F(1,1)=0: F(1,2)=0` is legal.
+- `LOMEM:` moves the bottom of variable space. It was moving the program.
+- Text files with bare CR line endings, which is what an Apple wrote, and
+  listings that went through a printer with their long lines wrapped and
+  indented, both load.
+
+What is left in that corpus is the machine's, not ours: `IF C>A THEN` is a
+syntax error because the tokenizer finds `AT` in it, `FOR DELAY=` finds
+`DEL`, `HLIN 0,79` is an illegal quantity on a forty-column lo-res screen,
+and the rest are programs for other BASICs (`CLS`, `WIDTH 80`) or the
+canned answers the harness types at `INPUT`.
+
+The hi-res games in the images (Chicken Little, Mosquito Madness, Pond Scum,
+Spin Ball) `BLOAD` machine code and `CALL` it, which needs a 6502 this does
+not have.
 
 ## Where the behaviour came from
 
@@ -139,7 +325,7 @@ BOBBIN=/path/to/bobbin python3 tools/diff/run.py
 Nineteen programs cover number formatting, transcendentals, strings, control
 flow, `DATA`/`READ`, `DEF FN`, arrays, `POS`/`HTAB`, `ONERR` and the error
 codes at `PEEK(222)`, the tokenizer, `FRE(0)` and the zero-page pointers, and
-a few real workloads. **Sixteen of the nineteen are byte-identical to the
+a few real workloads. **Seventeen of the twenty are byte-identical to the
 ROM**, error messages, memory sizes and `?BAD SUBSCRIPT ERROR IN 60`
 included. The harness has already earned its keep twice:
 
@@ -460,3 +646,7 @@ before publishing:
 
 The character set in `src/applefont.c` is authored to the Apple's 5x7-in-7x8
 geometry rather than copied: the real character ROM is still Apple's.
+
+---
+
+Applesoft and Apple II are trademarks of Apple Inc. This project is not affiliated with or endorsed by Apple. The character shapes, the keyword table and the behaviour described here were authored or measured for this project; no Apple ROM code or data is included.

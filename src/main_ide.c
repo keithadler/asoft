@@ -124,7 +124,8 @@ static void usage(const char *argv0)
     fprintf(stderr,
             "usage: %s [-n] [-dump FILE] [program.bas]\n"
             "  -n         disable the deliberate ROM bugs\n"
-            "  -f         run flat out, not at the speed the machine ran at\n"
+            "  -f         run flat out, even when a program polls the keyboard\n"
+            "  -p         the machine's speed from the first statement\n"
             "  -dump F    draw the screen once, write it to F as text, exit\n"
             "  -screen F  keep running, rewriting F after every redraw\n",
             argv0);
@@ -145,6 +146,8 @@ int main(int argc, char **argv)
             dump = argv[++i];
         } else if (strcmp(argv[i], "-f") == 0) {
             pace_set_rate(0);
+        } else if (strcmp(argv[i], "-p") == 0) {
+            pace_set_always(1);
         } else if (strcmp(argv[i], "-n") == 0) {
             memset(bug_enabled, 0, sizeof(bug_enabled));
         } else if (argv[i][0] == '-' && argv[i][1]) {
@@ -171,7 +174,7 @@ int main(int argc, char **argv)
     }
 
     if (dump) {
-        scr_raw_puts("]");
+        scr_raw_putc(scr_prompt());
         ide_draw_once();
         tui_shutdown();
         {
@@ -183,7 +186,7 @@ int main(int argc, char **argv)
     }
 
     for (;;) {
-        scr_raw_puts("]");
+        scr_raw_putc(scr_prompt());
         if (!host_getline(line, (int)sizeof(line)))
             break;
         it_line(line);

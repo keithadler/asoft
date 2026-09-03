@@ -26,6 +26,8 @@
   a.big:hover .go { border-color: #7ddc7d; color: #7ddc7d; }
   h2.sec { font-size: 12px; text-transform: uppercase; letter-spacing: .1em;
            color: #77777f; margin: 44px 0 14px; font-weight: 600; }
+  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+  .shots img { width: 100%; border: 1px solid #26262c; border-radius: 6px; image-rendering: pixelated; }
   .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
              gap: 10px; }
   a.card { display: block; text-decoration: none; color: inherit; background: #15151a;
@@ -74,6 +76,16 @@
   </a>
 </div>
 
+<h2 class="sec">The screen is the Apple's</h2>
+<div class="shots">
+  <img src="shots/dos-text.png" alt="The forty-column text screen, with INVERSE and FLASH">
+  <img src="shots/dos-hgr.png" alt="HGR with the four text lines under the picture">
+  <img src="shots/dos-80.png" alt="Eighty columns after PR#3">
+</div>
+<p class="tag" style="margin-top:8px">Forty columns, then <code>HGR</code> with the prompt in the four lines
+   under the picture, then <code>PR#3</code>. Real BIOS text modes and VGA mode
+   13h, painted from the Apple's own page memory.</p>
+
 <h2 class="sec">One click, and it runs</h2>
 <div class="gallery">
   <a class="card" href="console.html?run=SNAKE"><b>SNAKE</b><span>A game. Steer with I J K M, quit with Q.</span></a>
@@ -102,7 +114,7 @@
      <code>?OUT OF MEMORY ERROR</code> is spelled exactly the way the machine
      spelled it.</p>
   <p>All of it is reproduced deliberately and checked against the genuine
-     Applesoft ROM running in an Apple II emulator — sixteen of nineteen test
+     Applesoft ROM running in an Apple II emulator — seventeen of twenty test
      programs come out byte-identical, and the differential harness in the
      repository shows its work. Each misfeature can be switched off
      individually. This is an act of preservation, not nostalgia for its own
@@ -114,8 +126,10 @@
   <li>Click the black screen before typing, so it takes your keyboard.</li>
   <li>Lower case is fine — keywords fold to upper case; text inside quotes keeps
       the case you typed.</li>
-  <li>Hi-res graphics hide the text screen, as the Apple did. Type
-      <code>TEXT</code> and press return to come back.</li>
+  <li><code>PR#3</code> is eighty columns and <code>PR#0</code> forty;
+      <code>GR</code> and <code>HGR</code> keep four lines of text under the
+      picture, and <code>HGR2</code> hides the text screen, as the Apple did.
+      Type <code>TEXT</code> blind and press return to come back.</li>
   <li><code>Ctrl-C</code> stops a running program.</li>
   <li>In the IDE: <code>F5</code> run, <code>F9</code> list, <code>F10</code> menus,
       and the Samples menu loads any demo in one pick.</li>
@@ -124,7 +138,8 @@
 <footer>
   Portable C89, compiled to a 16-bit MZ executable with Open Watcom, byte-identical
   output to the host build. <a href="https://github.com/keithadler/asoft">Source and
-  the full story on GitHub</a> &middot; MIT licence.
+  the full story on GitHub</a> &middot; MIT licence.<br>
+  Applesoft and Apple II are trademarks of Apple Inc. This project is not affiliated with or endorsed by Apple.
 </footer>
 </main>
 </body>

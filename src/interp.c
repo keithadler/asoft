@@ -6,6 +6,9 @@
 #include "host.h"
 #include "mbf.h"
 #include "pace.h"
+#include "printer.h"
+#include "sound.h"
+#include "dos33.h"
 #include "screen.h"
 #include "shape.h"
 #include "token.h"
@@ -60,6 +63,11 @@ static int   last_error = ERR_NONE;
 static long  last_error_line;
 
 static jmp_buf err_jmp;
+
+/* A LOAD or RUN asked for through the DOS command channel, done between
+ * statements; see do_pending. */
+static int pending_run;
+static void do_pending(void);
 
 /* User-defined functions. The body is copied rather than referenced so that
  * DEF FN typed at the prompt does not leave a pointer into a dead buffer. */
@@ -241,13 +249,18 @@ static a2addr lvalue(int *type)
     }
 }
 
+/* An integer variable is two bytes, high byte first, two's complement:
+ * what a PEEK of the variable space finds, and what makes DIM A%(1000)
+ * cost a fifth of DIM A(1000). */
 static void load_value(a2addr slot, int type, value *out)
 {
     out->is_str = (type == VT_STR);
     if (out->is_str)
         a2_str_get(slot, &out->str);
     else
-        out->num = load_num(slot);
+        out->num = (type == VT_INT)
+                 ? (double)(int)(short)((a2mem[slot] << 8) | a2mem[slot + 1])
+                 : load_num(slot);
 }
 
 static void store_value(a2addr slot, int type, const value *v)
@@ -256,10 +269,15 @@ static void store_value(a2addr slot, int type, const value *v)
         raise_err(ERR_TYPEMISMATCH);
     if (type == VT_STR)
         a2_str_put(slot, &v->str);
-    else if (type == VT_INT)
-        store_num(slot, (double)(long)v->num);
-    else
+    else if (type == VT_INT) {
+        long n = (long)v->num;
+        if (n < -32767 || n > 32767)
+            raise_err(ERR_ILLEGALQTY);
+        a2mem[slot] = (unsigned char)((n >> 8) & 0xFF);
+        a2mem[slot + 1] = (unsigned char)(n & 0xFF);
+    } else {
         store_num(slot, v->num);
+    }
 }
 
 /* ----------------------------------------------------------- functions */
@@ -908,6 +926,8 @@ static void exec_line(void)
          * clock Applesoft has, so this is what makes them mean anything. */
         pace_statement();
         exec_statement();
+        if (pending_run)
+            do_pending();
         if (jumped || quitting)
             return;
         if (*ip && *ip != ':' && !if_fallthrough)
@@ -975,27 +995,35 @@ static void do_input(void)
     char buf[256];
     char *p;
 
-    /* An optional prompt string comes first, followed by a semicolon. */
+    /* An optional prompt string comes first, followed by a semicolon. With
+     * a READ in effect the answer comes from the file and no prompt shows,
+     * as DOS arranged. */
     if (*ip == '"') {
         value v;
         primary(&v);
-        print_value(&v);
+        if (!dos_reading())
+            print_value(&v);
         if (!eat(';'))
             (void)eat(',');
-    } else {
+    } else if (!dos_reading()) {
         scr_putc('?');
     }
 
-    if (!host_getline(buf, (int)sizeof(buf))) {
-        quitting = 1;
-        running = 0;
-        return;
-    }
-    /* Put the answer on the screen if nothing else has. Typing at a keyboard
-     * echoes by itself; a file being piped in does not. */
-    if (!host_echoes()) {
-        scr_puts(buf);
-        scr_newline();
+    if (dos_reading()) {
+        if (!dos_read_line(buf, (int)sizeof(buf)))
+            raise_err(ERR_ENDOFDATA);
+    } else {
+        if (!host_getline(buf, (int)sizeof(buf))) {
+            quitting = 1;
+            running = 0;
+            return;
+        }
+        /* Put the answer on the screen if nothing else has. Typing at a
+         * keyboard echoes by itself; a file being piped in does not. */
+        if (!host_echoes()) {
+            scr_puts(buf);
+            scr_newline();
+        }
     }
     p = buf;
 
@@ -1078,6 +1106,21 @@ static void do_for(void)
     if (eat(T_STEP))
         step = need_num();
 
+    /* The ROM's FOR looks back down the stack, through the FOR frames only,
+     * for one on the same variable, and if it finds one that frame and
+     * everything above it are thrown away: a loop left by a GOTO and then
+     * entered again does not nest, which is why a program can do that for
+     * ever without running out of memory. The search stops at a GOSUB. */
+    {
+        int i;
+        for (i = ncstack - 1; i >= 0 && cstack[i].kind == FRAME_FOR; i--) {
+            if (cstack[i].var == slot) {
+                while (ncstack > i)
+                    pop_frame();
+                break;
+            }
+        }
+    }
     push_frame(FRAME_FOR, SZ_FOR);
     {
         frame *f = &cstack[ncstack - 1];
@@ -1210,6 +1253,9 @@ static unsigned char kbd_latch;
 static double kbd_peek(a2addr addr)
 {
     if (addr == KBD_DATA) {
+        /* A program polling the keyboard is running in real time: from
+         * here on it runs at the machine's speed, so its delay loops hold. */
+        pace_engage();
         if (!(kbd_latch & 0x80)) {
             int k = host_pollkey();
             if (k > 0) {
@@ -1222,8 +1268,23 @@ static double kbd_peek(a2addr addr)
     }
     if (addr == KBD_STROBE) {
         unsigned char was = kbd_latch;
+        pace_engage();
         kbd_latch &= 0x7F;
         return was;
+    }
+    /* The video switches flip on a read as readily as on a write; what a
+     * read returns is whatever was on the bus, which here is nothing. */
+    if (gfx_is_softswitch(addr)) {
+        gfx_softswitch(addr);
+        return 0;
+    }
+    /* The speaker, likewise: a read clicks it. A program doing that is
+     * making sound in real time, so from here on it runs at the machine's
+     * speed, or its tones come out as a buzz. */
+    if (addr == SPKR) {
+        pace_engage();
+        snd_click();
+        return 0;
     }
     return a2_peek(addr);
 }
@@ -1238,10 +1299,26 @@ static void do_poke(void)
         if (v < -255 || v > 255)
             raise_err(ERR_ILLEGALQTY);
         addr = (long)a;
-        if ((addr & 0xFFFF) == KBD_STROBE)
+        if ((addr & 0xFFFF) == KBD_STROBE) {
+            pace_engage();
             kbd_latch &= 0x7F;
-        else
-            a2_poke((a2addr)(addr & 0xFFFF), (unsigned char)((long)v & 0xFF));
+        } else if (gfx_is_softswitch((a2addr)(addr & 0xFFFF))) {
+            gfx_softswitch((a2addr)(addr & 0xFFFF));
+        } else if ((addr & 0xFFFF) == SPKR) {
+            pace_engage();
+            snd_click();
+        } else {
+            a2addr a = (a2addr)(addr & 0xFFFF);
+            a2_poke(a, (unsigned char)((long)v & 0xFF));
+            /* A byte written into a page is on the display at once, just as
+             * one plotted there: POKE 1024,193 puts an A in the corner. */
+            if (a >= LORES_PAGE1 && a < HIRES_PAGE2 + 0x2000)
+                gfx_notify(a);
+            /* The cursor and the window live in zero page; a front end with
+             * a real cursor wants to know they moved. */
+            if (a >= ZP_WNDLFT && a <= ZP_CV)
+                scr_notify_cursor();
+        }
     }
 }
 
@@ -1249,9 +1326,25 @@ static void do_call(void)
 {
     long addr = (long)need_num();
 
-    /* CALL -3288 is the ROM entry that pops the frame ONERR leaked, which is
-     * the documented workaround ONERRFIX.BAS uses. Every other address is
-     * accepted and ignored: there is no 6502 here to run. */
+    /* There is no 6502 here to run, so a CALL can only reach the routines
+     * the ROM was known for and programs leaned on: the Monitor's screen
+     * and bell entries, the hi-res clears, and -3288, which pops the frame
+     * ONERR leaked and is the documented workaround ONERRFIX.BAS uses.
+     * Everything else is accepted and ignored. */
+    switch (addr & 0xFFFF) {
+    case 0xFC58: scr_home();   return;           /* CALL -936  HOME */
+    case 0xFC9C: scr_clreol(); return;           /* CALL -868  clear to end of line */
+    case 0xFC42: scr_clreop(); return;           /* CALL -958  clear to end of window */
+    case 0xF832: gfx_clrscr(); return;           /* CALL -1998 clear lo-res, all */
+    case 0xF836: gfx_clrtop(); return;           /* CALL -1994 clear lo-res, top */
+    case 0xF3F2: gfx_hclr();   return;           /* CALL 62450 hi-res to black */
+    case 0xF3F6: gfx_bkgnd();  return;           /* CALL 62454 hi-res to HCOLOR */
+    case 0xFF3A: case 0xFBE4:                    /* CALL -198, -1052: the bell */
+        pace_engage();
+        snd_bell();
+        return;
+    default: break;
+    }
     if ((addr & 0xFFFF) == 0xF328) {
         int i;
         for (i = ncstack - 1; i >= 0; i--) {
@@ -1443,6 +1536,16 @@ static void exec_statement(void)
             start = a2_prog_find(read_lineno());
             if (!start)
                 raise_err(ERR_UNDEFSTMT);
+        } else if (isalpha((unsigned char)*ip)) {
+            /* RUN NAME: DOS's, loading the program first. Inside a running
+             * program this is how one chained to the next. */
+            char path[160];
+            dos_path((const char *)ip, ".BAS", path, (int)sizeof(path));
+            while (*ip)
+                ip++;
+            if (!it_load(path))
+                raise_err(ERR_FILENOTFOUND);
+            start = a2_prog_first();
         } else {
             start = a2_prog_first();
         }
@@ -1507,7 +1610,7 @@ static void exec_statement(void)
              * eleven elements -- is an error, not a resize. */
             if (a2_array_exists(name, type))
                 raise_err(ERR_REDIMD);
-            if (!a2_array(name, type, idx, nd, 1, &err))
+            if (!a2_array_dim(name, type, idx, nd, &err))
                 raise_err(err ? err : ERR_OUTOFMEM);
         } while (eat(','));
         return;
@@ -1516,9 +1619,16 @@ static void exec_statement(void)
     case T_GET: {
         int type;
         a2addr slot = lvalue(&type);
-        int c = host_getkey();
+        int c;
         value v;
-        if (c <= 0) { quitting = 1; running = 0; return; }
+        if (dos_reading()) {
+            c = dos_read_char();
+            if (c < 0)
+                raise_err(ERR_ENDOFDATA);
+        } else {
+            c = host_getkey();
+            if (c <= 0) { quitting = 1; running = 0; return; }
+        }
         if (type == VT_STR) {
             char ch = (char)c;
             v.is_str = 1;
@@ -1534,10 +1644,20 @@ static void exec_statement(void)
     case T_HTAB: scr_htab((int)need_num()); return;
     case T_VTAB: scr_vtab((int)need_num()); return;
     case T_HOME: scr_home(); return;
-    case T_TEXT: gfx_text(); return;
+    case T_TEXT:
+        /* The ROM's SETTXT: flip the switch, open the window back up to the
+         * whole screen, and put the cursor on the bottom line. */
+        gfx_text();
+        scr_window_reset();
+        scr_cursor_bottom();
+        return;
+
+    /* How the next characters are stored in the text page. */
+    case T_NORMAL:  scr_text_mode(SCR_NORMAL);  return;
+    case T_INVERSE: scr_text_mode(SCR_INVERSE); return;
+    case T_FLASH:   scr_text_mode(SCR_FLASH);   return;
 
     /* Accepted and ignored: there is no speaker, no paddle, no printer. */
-    case T_NORMAL: case T_INVERSE: case T_FLASH:
     case T_TRACE:  case T_NOTRACE: case T_SHLOAD:
         return;
     /* SPEED=, ROT= and SCALE= carry the "=" inside the keyword itself, so
@@ -1558,31 +1678,82 @@ static void exec_statement(void)
          * again. Everything else is a printer or a serial card that is not
          * here, and is accepted and ignored as it always was. */
         long slot = (long)need_num();
-        if (slot == 3)
+        if (slot == 3) {
+            printer_off();
             scr_set_cols(80);
-        else if (slot == 0)
+        } else if (slot == 1) {
+            printer_on();
+        } else if (slot == 0) {
+            printer_off();
             scr_set_cols(40);
+        }
         return;
     }
     case T_INNUM:
         (void)need_num();
         return;
-    case T_WAIT:
-        (void)need_num();
-        if (eat(',')) (void)need_num();
-        if (eat(',')) (void)need_num();
+    case T_WAIT: {
+        /* WAIT addr, mask [, xor]: spin until (PEEK(addr) XOR xor) AND mask
+         * is non-zero. The keyboard is the only thing here that changes by
+         * itself, so in practice this is "wait for a key" -- WAIT -16384,128
+         * -- and Ctrl-C still gets out of it, as BREAK. */
+        a2addr addr = (a2addr)((long)need_num() & 0xFFFF);
+        int mask, xr = 0;
+        expect(',');
+        mask = (int)((long)need_num() & 0xFF);
+        if (eat(','))
+            xr = (int)((long)need_num() & 0xFF);
+        for (;;) {
+            int v = (int)kbd_peek(addr);
+            if (((v ^ xr) & mask) != 0)
+                break;
+            if (host_break()) {
+                char buf[32];
+                scr_newline();
+                sprintf(buf, "BREAK IN %ld", cur_line ? a2_prog_lineno(cur_line) : 0L);
+                scr_puts(buf);
+                scr_newline();
+                stopped_line = cur_line ? a2_prog_lineno(cur_line) : 0;
+                running = 0;
+                jumped = 1;
+                return;
+            }
+        }
         return;
+    }
 
-    case T_HIMEM:
-        a2_setword(ZP_MEMSIZ, (a2addr)((long)need_num() & 0xFFFF));
+    case T_HIMEM: {
+        /* HIMEM: has to leave room for what is already there. */
+        a2addr v = (a2addr)((long)need_num() & 0xFFFF);
+        if (v < a2_word(ZP_STREND))
+            raise_err(ERR_OUTOFMEM);
+        a2_setword(ZP_MEMSIZ, v);
         a2_clear_vars();
         return;
-    case T_LOMEM:
-        a2_setword(ZP_TXTTAB, (a2addr)((long)need_num() & 0xFFFF));
+    }
+    case T_LOMEM: {
+        /* LOMEM: moves the bottom of variable space, not the program: it
+         * has to land above the program and below the strings, and it
+         * clears the variables, as CLEAR does. */
+        a2addr v = (a2addr)((long)need_num() & 0xFFFF);
+        if (v < a2_prog_end() || v >= a2_word(ZP_FRETOP))
+            raise_err(ERR_OUTOFMEM);
+        a2_setword(ZP_VARTAB, v);
+        a2_clear_vars();
         return;
+    }
 
     /* --- graphics: real pixels in real page memory --- */
-    case T_GR:   gfx_gr(); return;
+    case T_GR:
+        /* SETGR: lo-res, mixed, cleared; the text window becomes the four
+         * lines under the picture, and the cursor goes to the bottom one. */
+        gfx_gr();
+        scr_window(20);
+        scr_cursor_bottom();
+        return;
+    /* HGR and HGR2 leave the text window and cursor alone: under HGR the
+     * bottom four lines of the text page stay on show, and a program that
+     * wants to print there does VTAB 21 itself. HGR2 is the whole screen. */
     case T_HGR:  gfx_hgr(); return;
     case T_HGR2: gfx_hgr2(); return;
     case T_COLOR:                    /* the "=" is part of the token */
@@ -1668,7 +1839,7 @@ static void exec_statement(void)
         if (!n)
             raise_err(ERR_SYNTAX);
         if (!(t == T_LOAD ? it_load(path) : it_save(path)))
-            raise_err(ERR_OUTOFMEM);
+            raise_err(ERR_FILENOTFOUND);
         return;
     }
 
@@ -1706,6 +1877,15 @@ static void report_error(int code)
      * zero, which is why a failed immediate command leaves the "]" on a line
      * of its own and a failure mid-program prints a blank line first. */
     scr_newline();
+    /* DOS 3.3's own errors came out bare: "FILE NOT FOUND", no question
+     * mark, no ERROR, no line. And an error, DOS's or the ROM's, took the
+     * screen and keyboard back from any file they were pointed at. */
+    dos_reset_modes();
+    if (ERR_IS_DOS(code)) {
+        scr_puts(err_message(code));
+        scr_newline();
+        return;
+    }
     /* The ROM gives every message an " ERROR" suffix - "?SYNTAX ERROR",
      * "?OUT OF DATA ERROR IN 250". Only "?REENTER" (and "BREAK IN n",
      * reported elsewhere) go without it. */
@@ -1766,10 +1946,55 @@ static int handle_error(int code)
 
 /* ----------------------------------------------------------------- entry */
 
+static void dos_raise(int code) { raise_err(code); }
+
+/* A LOAD or RUN that came through the command channel is done between
+ * statements, not inside the PRINT that asked for it. */
+static char pending_path[160];
+static void dos_program(const char *path, int run)
+{
+    strncpy(pending_path, path, sizeof(pending_path) - 1);
+    pending_path[sizeof(pending_path) - 1] = '\0';
+    pending_run = run ? 2 : 1;
+}
+
+static void do_pending(void)
+{
+    int kind = pending_run;
+    if (!kind)
+        return;
+    pending_run = 0;
+    if (!it_load(pending_path))
+        raise_err(ERR_FILENOTFOUND);
+    if (kind == 2) {
+        a2addr start = a2_prog_first();
+        pace_reset();
+        a2_clear_vars();
+        ncstack = cstack_bytes = leaked = 0;
+        onerr_line = 0;
+        a2_poke(ZP_ONERRFLAG, 0);
+        data_restore();
+        if (!start) { running = 0; jumped = 1; return; }
+        cur_line = start;
+        ip = a2_prog_tokens(start);
+        running = 1;
+    } else {
+        /* LOAD under a running program stops it, as it did. */
+        running = 0;
+    }
+    jumped = 1;
+}
+
 void it_init(void)
 {
     a2_init();
+    scr_reset();
     gfx_reset();
+    dos_init();
+    dos_set_error_hook(dos_raise);
+    dos_set_program_hook(dos_program);
+    scr_set_filter(dos_filter);
+    pending_run = 0;
     memset(fns, 0, sizeof(fns));
     ncstack = cstack_bytes = leaked = 0;
     cur_line = 0;
@@ -1789,6 +2014,23 @@ void it_line(const char *src)
         src++;
     if (!*src)
         return;
+
+    /* POKE 214,255: every command typed is RUN. Protection schemes used
+     * it, and so did programs that wanted to be unquittable. */
+    if (a2mem[ZP_RUNFLAG] & 0x80)
+        src = "RUN";
+
+    /* Each line typed starts with the screen and keyboard back; and DOS
+     * took its own commands straight off the prompt, no control-D needed. */
+    dos_reset_modes();
+    if (dos_is_command(src)) {
+        int code = setjmp(err_jmp);
+        if (code == 0)
+            dos_command(src);
+        else
+            report_error(code);
+        return;
+    }
 
     /* A leading line number stores the line instead of running it. */
     if (isdigit((unsigned char)*src)) {
@@ -1928,39 +2170,107 @@ int it_frame_info(int i, int *kind, char *label, long *value)
 
 /* ------------------------------------------------------------ load / save */
 
+/* One line of a text file, ended by LF, CR or CR LF. Apple text files end
+ * their lines with a bare CR, and a listing that has been through a modern
+ * editor may end them with either, so all three are lines here. */
+static int read_text_line(FILE *f, char *buf, int max)
+{
+    int n = 0, c;
+    for (;;) {
+        c = fgetc(f);
+        if (c == EOF) {
+            if (n == 0)
+                return 0;
+            break;
+        }
+        if (c == '\r') {
+            int d = fgetc(f);
+            if (d != '\n' && d != EOF)
+                ungetc(d, f);
+            break;
+        }
+        if (c == '\n')
+            break;
+        if (n < max - 1)
+            buf[n++] = (char)c;
+    }
+    buf[n] = '\0';
+    return 1;
+}
+
+static int store_line(const char *text)
+{
+    unsigned char toks[512];
+    char *end;
+    long n = strtol(text, &end, 10);
+    int len;
+
+    while (*end == ' ')
+        end++;
+    len = tok_tokenize(end, toks, (int)sizeof(toks),
+                       bug_enabled[BUG_GREEDY_TOKENIZER]);
+    if (len < 0)
+        return 1;
+    return a2_prog_insert(n, toks, len);
+}
+
 int it_load(const char *path)
 {
     char line[512];
-    unsigned char toks[512];
+    char pending[1024];
+    int have = 0;
+    long last_n = -1;
+    int last_end = 0;             /* column the last line number ended in */
     FILE *f = fopen(path, "r");
     if (!f)
         return 0;
 
     a2_new();
     memset(fns, 0, sizeof(fns));
-    while (fgets(line, (int)sizeof(line), f)) {
+    while (read_text_line(f, line, (int)sizeof(line))) {
         char *p = line, *end;
-        long n;
-        int len = (int)strlen(line);
-        while (len && (line[len - 1] == '\n' || line[len - 1] == '\r'))
-            line[--len] = '\0';
-        while (*p == ' ')
+        int indent = 0;
+        int continues;
+        while (*p == ' ' || *p == '\t') {
+            indent++;
             p++;
+        }
         if (!*p)
             continue;
+        /* A listing that went through a printer or a terminal has its long
+         * lines wrapped, with the rest indented past where the line numbers
+         * end. So an indented line is a continuation of the one before it
+         * when it starts to the right of the last line number, or when it
+         * has no number at all, or when what looks like one is not larger
+         * than the last -- a program lists in ascending order, so "0 AND
+         * Y2<9" after line 110 is the tail of 110, not line 0. Unindented
+         * text with no number is a command that was in the file, and is
+         * not part of the program. */
         if (!isdigit((unsigned char)*p))
-            continue;             /* not a numbered line; skip it */
-        n = strtol(p, &end, 10);
-        while (*end == ' ')
-            end++;
-        len = tok_tokenize(end, toks, (int)sizeof(toks),
-                           bug_enabled[BUG_GREEDY_TOKENIZER]);
-        if (len < 0)
+            continues = indent > 0;
+        else
+            continues = have && (indent > last_end ||
+                                 strtol(p, &end, 10) <= last_n);
+        if (continues) {
+            if (have)
+                strncat(pending, p, sizeof(pending) - strlen(pending) - 1);
             continue;
-        if (!a2_prog_insert(n, toks, len)) {
+        }
+        if (!isdigit((unsigned char)*p))
+            continue;
+        if (have && !store_line(pending)) {
             fclose(f);
             return 0;
         }
+        strncpy(pending, p, sizeof(pending) - 1);
+        pending[sizeof(pending) - 1] = '\0';
+        last_n = strtol(p, &end, 10);
+        last_end = indent + (int)(end - p);
+        have = 1;
+    }
+    if (have && !store_line(pending)) {
+        fclose(f);
+        return 0;
     }
     fclose(f);
     data_restore();

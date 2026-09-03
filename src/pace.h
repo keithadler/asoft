@@ -27,9 +27,22 @@
 void pace_set_rate(long statements_per_second);
 long pace_rate(void);
 
+/* Whether the pace waits to be asked for. A program that never looks at the
+ * keyboard while it runs -- a Mandelbrot, a dragon curve -- gains nothing
+ * from the machine's speed except minutes of blank screen, so by default
+ * the pace is held back until the program reads the keyboard strobe, which
+ * is what a game does to keep moving between keys. From then on its delay
+ * loops mean what they meant. pace_set_always makes it apply from the first
+ * statement regardless. */
+void pace_set_always(int always);
+void pace_engage(void);
+
 /* Called when a program starts, and once per statement while it runs. */
 void pace_reset(void);
 void pace_statement(void);
+
+/* Every statement ever executed, paced or not: what -b divides by time. */
+long pace_total(void);
 
 /* The wall clock, in microseconds, portably: gettimeofday where there is
  * one, the 55ms DOS tick where there is not. Here because pace.c already

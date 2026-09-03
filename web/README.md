@@ -6,7 +6,9 @@
 web/
   index.html          host page, loads js-dos v8 from the CDN
   ui-mockup.html      the proposed Turbo Vision layout, for review
-  makebundle.sh       zips bundle/ into asoft.jsdos
+  makebundle.sh       zips bundle/ into asoft.jsdos, for console.html
+  makeidebundle.sh    zips the IDE into idedemo.jsdos, for idedemo.html
+  makebench.sh        bench-N.jsdos: ASOFT.EXE -b BENCH.BAS at N cycles, for bench.html
   bundle/
     .jsdos/dosbox.conf   required by js-dos
     .jsdos/jsdos.json    title, mouse on
@@ -61,10 +63,13 @@ Open <http://localhost:8000/>. `file://` will not work — js-dos needs http.
 
 ## Notes on the DOSBox config
 
-- `machine=svga_s3` so the 8x8 font (80x43) is available. Turbo Vision switches into
-  it at startup.
-- `cycles=20000` is plenty for a text-mode interpreter; `cycles=max` just burns
-  battery. Raise it if a tight `FOR` loop feels slow.
+- `machine=vgaonly` covers everything the two binaries ask for: text modes 1 and 3
+  for the console's forty and eighty columns, mode 13h for its graphics, and the
+  8x8 font (80x43) the IDE loads at startup.
+- `cycles=200000`, a fast 486. The interpreter runs flat out until a program
+  polls the keyboard, so the compute-bound demos finish in seconds; a browser
+  that cannot sustain it just runs slower. `cycles=max` would peg a core while
+  the page sits at the prompt.
 - `nosound=true` — nothing makes sound yet. Change this when the bell and `PR#`
   land.
 - The `[autoexec]` block mounts the bundle root as `C:` and runs `ASOFT.EXE`, so

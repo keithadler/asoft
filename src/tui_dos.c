@@ -295,9 +295,25 @@ void tui_mouse(int *x, int *y, int *button)
     *x = mouse_x; *y = mouse_y; *button = mouse_b;
 }
 
+/* A press seen by tui_haskey is kept here until tui_getkey hands it over:
+ * mouse_pressed reports the edge once, so asking twice would lose it, and
+ * a click during a running program then stalled until a key was pressed. */
+static int mouse_pending;
+
+/* Between statements the keyboard is asked every time, because that is
+ * how Ctrl-C gets through, but int 33h is dear under an emulator and a
+ * click can wait a few dozen statements. */
+static unsigned poll_count;
+
 int tui_haskey(void)
 {
-    return (kbhit() || mouse_pressed()) ? 1 : 0;
+    if (kbhit() || mouse_pending)
+        return 1;
+    if ((++poll_count & 63) == 0 && mouse_pressed()) {
+        mouse_pending = 1;
+        return 1;
+    }
+    return 0;
 }
 
 int tui_getkey(void)
@@ -305,6 +321,10 @@ int tui_getkey(void)
     int c, k;
 
     for (;;) {
+        if (mouse_pending) {
+            mouse_pending = 0;
+            return K_MOUSE;
+        }
         /* Nothing here blocks, so the mouse gets a look in between keys. */
         while (!kbhit()) {
             if (mouse_pressed())

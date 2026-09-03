@@ -6,15 +6,22 @@ CC      ?= cc
 CFLAGS  ?= -std=c89 -Wall -Wextra -Wdeclaration-after-statement -O2
 LDLIBS  ?= -lm
 
-# display_dos.c and tui_dos.c are for the 16-bit DOS build only; see
-# build-dos.sh. ide.c and the tui backends belong to the windowed front end,
-# which is a separate binary from the plain console one.
-SRC   := $(filter-out src/display_dos.c src/tui_%.c src/ide.c,$(wildcard src/*.c))
+# The *_dos.c files are for the 16-bit DOS build only; see build-dos.sh.
+# ide.c and the tui backends belong to the windowed front end, which is a
+# separate binary from the plain console one.
+SRC   := $(filter-out src/%_dos.c src/tui_%.c src/ide.c,$(wildcard src/*.c))
 IDE   := src/ide.c src/tui_term.c src/tui_palette.c
 TESTS := $(wildcard tests/test_*.c)
 CORE  := $(filter-out src/main_%.c,$(SRC)) tests/host_stub.c
 
-all: build/asoft build/asoft-ide build/layout build/hgrdump build/textdump
+# The DOS front end, on the host: the same console_dos.c and display_dos.c
+# the 16-bit binary is built from, against stand-ins for the BIOS and the
+# keyboard, so what it puts in video memory can be checked without DOSBox.
+DOSSIM := tests/dossim.c tests/dosshim/shim.c src/display_dos.c src/console_dos.c
+DOSSIM_CORE := $(filter-out src/main_%.c src/display_term.c,$(SRC))
+DOSSIM_FLAGS := -Dfar= -D_fmemset=memset -Itests/dosshim
+
+all: build/asoft build/asoft-ide build/layout build/hgrdump build/textdump build/dossim
 
 build/asoft: $(filter-out src/main_ide.c,$(SRC)) | build
 	$(CC) $(CFLAGS) -I. -o $@ $(filter-out src/main_ide.c,$(SRC)) $(LDLIBS)
@@ -31,10 +38,13 @@ build/hgrdump: tools/hgrdump.c $(filter-out src/main_%.c,$(SRC)) | build
 build/textdump: tools/textdump.c $(filter-out src/main_%.c,$(SRC)) | build
 	$(CC) $(CFLAGS) -I. -o $@ tools/textdump.c $(filter-out src/main_%.c,$(SRC)) $(LDLIBS)
 
+build/dossim: $(DOSSIM) $(DOSSIM_CORE) | build
+	$(CC) $(CFLAGS) $(DOSSIM_FLAGS) -I. -o $@ $(DOSSIM) $(DOSSIM_CORE) $(LDLIBS)
+
 build:
 	mkdir -p build
 
-check: build/asoft build/asoft-ide
+check: build/asoft build/asoft-ide build/dossim
 	@set -e; for t in $(TESTS); do \
 	  n=$$(basename $$t .c); \
 	  $(CC) $(CFLAGS) -I. -o build/$$n $$t $(CORE) $(LDLIBS); \
@@ -55,12 +65,17 @@ check: build/asoft build/asoft-ide
 	@./tests/run_capture.sh inputget
 	@./tests/run_local.sh nextlist
 	@./tests/run_local.sh apple
+	@./tests/run_local.sh rom
+	@./tests/run_local.sh formats
 	@./tests/run_cli_keys.sh
 	@./tests/run_ide.sh
 	@./tests/run_ide_edit.sh
 	@./tests/run_ide_keys.sh
 	@./tests/run_ide_dos.sh
 	@./tests/run_mouse_dos.sh
+	@./tests/run_dossim.sh
+	@./tests/run_dos33.sh
+	@./tests/run_bench.sh
 
 clean:
 	rm -rf build

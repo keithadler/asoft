@@ -74,8 +74,8 @@ static char cells[APPLE_H][APPLE_W];
 /* How wide the Apple screen is right now, and whether it has the whole
  * window: forty columns leaves room for the Machine pane beside it, eighty
  * or a graphics mode does not. */
-static int apple_cols(void) { return scr_cols(); }
-static int apple_wide(void) { return scr_cols() > 40 || gfx_mode() != GFX_TEXT; }
+static int apple_cols(void) { return scr_card_cols(); }
+static int apple_wide(void) { return scr_card_cols() > 40 || gfx_mode() != GFX_TEXT; }
 static int  arow, acol;               /* where output has reached */
 static int  prog_top;                 /* first program line shown */
 static char input[256];
@@ -197,7 +197,18 @@ static void apple_newline(void)
  * position whether or not it counts towards POS. */
 void ide_sink(char ch)
 {
-    if (ch == '\f') { apple_clear(); return; }
+    if (ch == SCR_CLEAR) { apple_clear(); return; }
+    if (ch == SCR_CLREOL) {
+        memset(&cells[arow][acol], ' ', (size_t)(apple_cols() - acol));
+        return;
+    }
+    if (ch == SCR_CLREOP) {
+        int r;
+        memset(&cells[arow][acol], ' ', (size_t)(apple_cols() - acol));
+        for (r = arow + 1; r < APPLE_H; r++)
+            memset(cells[r], ' ', APPLE_W);
+        return;
+    }
     if (ch == '\n') { apple_newline(); return; }
     if (acol >= apple_cols())
         apple_newline();
@@ -467,7 +478,13 @@ static void heading(int x, int y, const char *name, const char *note)
  */
 static void draw_graphics(int x0, int y0, int w, int h)
 {
-    unsigned char row[HIRES_W];
+    /* One row of pixels for the top half of the cells and one for the
+     * bottom, computed once per row of cells. Working them out per cell
+     * instead is the difference between a repaint and a wait: the artifact
+     * rules cost a few thousand operations a row, and a 16-bit DOS build
+     * under an emulator asked to do that six thousand times per frame,
+     * after every statement, showed two dots of a picture in ten seconds. */
+    unsigned char rowt[HIRES_W], rowb[HIRES_W];
     int cx, cy, lores = (gfx_mode() == GFX_LORES);
     int src_w = lores ? LORES_W : HIRES_W;
     int src_h = lores ? LORES_H : HIRES_H;
@@ -475,14 +492,16 @@ static void draw_graphics(int x0, int y0, int w, int h)
     for (cy = 0; cy < h; cy++) {
         int ytop = (cy * 2) * src_h / (h * 2);
         int ybot = (cy * 2 + 1) * src_h / (h * 2);
-        int last = -1;
 
+        if (!lores) {
+            hires_row(ytop, rowt);
+            hires_row(ybot, rowb);
+        }
         for (cx = 0; cx < w; cx++) {
             int sx = cx * src_w / w;
             unsigned char top, bot;
 
             if (lores) {
-                top = hires_colour(PAL_HIRES);   /* placeholder, replaced below */
                 top = (unsigned char)lores_pixel(sx, ytop);
                 bot = (unsigned char)lores_pixel(sx, ybot);
                 /* Lo-res indices are the sixteen Apple colours; show the
@@ -490,11 +509,8 @@ static void draw_graphics(int x0, int y0, int w, int h)
                 top = (unsigned char)(top == PAL_LORES ? C_BLACK : C_GREEN + (top & 7));
                 bot = (unsigned char)(bot == PAL_LORES ? C_BLACK : C_GREEN + (bot & 7));
             } else {
-                if (ytop != last) { hires_row(ytop, row); last = ytop; }
-                top = hires_colour(row[sx]);
-                hires_row(ybot, row);
-                last = ybot;
-                bot = hires_colour(row[sx]);
+                top = hires_colour(rowt[sx]);
+                bot = hires_colour(rowb[sx]);
             }
             tui_put(x0 + cx, y0 + cy, G_HALF, ATTR(top, bot));
         }
@@ -724,7 +740,7 @@ static void run_line(const char *s)
 static void ensure_prompt(void)
 {
     if (acol == 0)
-        scr_raw_puts("]");
+        scr_raw_putc(scr_prompt());
 }
 
 void ide_set_loaded(const char *name);
@@ -1057,23 +1073,33 @@ int host_pollkey(void)
  * host_break between statements, which makes it the heartbeat; actually
  * redrawing every statement would cost more than the statement, so it is
  * rate-limited to roughly a screen refresh. */
-static long last_paint_us;
+static long last_paint_us, paint_cost_us;
 
 static void live_repaint(void)
 {
     long now = pace_now_us();
 
-    if (now - last_paint_us < 33000L)
+    /* Roughly a screen refresh, but never more than a fifth of the time:
+     * on a machine where a repaint is slow the program still gets to run,
+     * and the picture catches up in bigger steps. */
+    if (now - last_paint_us < 33000L + 4 * paint_cost_us)
         return;
-    last_paint_us = now;
     draw_all(-1);
     tui_cursor(-1, -1);
     tui_flush();
     screen_snapshot();
+    last_paint_us = pace_now_us();
+    paint_cost_us = last_paint_us - now;
 }
 
 int host_break(void)
 {
+    /* Once every few statements is often enough: a BIOS call costs about
+     * what a statement does under an emulator, and Ctrl-C arriving seven
+     * statements late is still instant. */
+    static unsigned nth;
+    if ((++nth & 7) != 0)
+        return 0;
     /* Poll without blocking, so a long FOR loop can still be interrupted --
      * and keep anything that is not Ctrl-C, because the running program may
      * be waiting for exactly that key. */
